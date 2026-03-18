@@ -1,89 +1,85 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>𝕏 Login with Supabase</title>
+    <title>TERMINAL-BBS // Welcome</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="terminal">
     <div class="container">
-        <div class="logo-container">
-            <svg viewBox="0 0 24 24" aria-hidden="true" width="60" height="60" fill="white">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"></path>
-            </svg>
-        </div>
-        
-        <h1>欢迎回来</h1>
-        <p class="muted">连接您的 X (Twitter) 账号，<br>体验秒级极速登录。</p>
-        
-        {% if user %}
-            <div class="user-card">
-                <div class="info-item" style="width: 100%;">
-                    <span class="label">已登录用户</span>
-                    <span class="value">{{ user.name }}</span>
+        <header class="terminal-nav">
+            <div class="terminal-logo">
+                <div class="logo terminal-prompt"><a href="/" style="color: #0f0; text-decoration: none;">STAKING_BBS V1.0</a></div>
+            </div>
+            <nav class="terminal-menu">
+                <ul>
+                    {% if not user %}
+                        <li><a class="menu-item" href="{{ url_for('login_twitter') }}">FOR_HUMANS</a></li>
+                        <li><a class="menu-item" href="#" onclick="loginWithMetaMask()">FOR_POSTS</a></li>
+                    {% else %}
+                        <li><a class="menu-item" href="{{ url_for('dashboard') }}">PROFILE</a></li>
+                        <li><a class="menu-item" href="{{ url_for('logout') }}" style="color: #f00;">LOGOUT</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </header>
+
+        <section>
+            <h1 class="terminal-prompt">BOARD_FEED // LIVE_STAKING_POSTS</h1>
+            
+            <div class="terminal-card">
+                <header>COMMUNITY_SESSIONS / PUBLIC_POSTS</header>
+                <div class="post-list">
+                    {% if posts %}
+                        {% for post in posts %}
+                            <div class="post-item">
+                                <span class="label">ENTRY_{{ post.id }}</span>
+                                <h3>{{ post.title }}</h3>
+                                <div class="muted">TIMESTAMP: {{ post.created_at }}</div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="muted" style="padding: 20px;">[!] NO DATA PACKETS DETECTED IN STREAM.</p>
+                    {% endif %}
                 </div>
             </div>
-        {% endif %}
 
-        <div class="forum-list" style="margin-top: 30px; text-align: left;">
-            <h2 style="font-size: 1.2rem; margin-bottom: 15px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">社区动态</h2>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                {% if posts %}
-                    {% for post in posts %}
-                        <div class="info-item post-item">
-                            <span class="label">#{{ post.id }}</span>
-                            <span class="value" style="display: block; margin-bottom: 4px;">{{ post.title }}</span>
-                            <span class="muted" style="font-size: 0.85rem; margin-bottom: 0;">{{ post.created_at }}</span>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <p class="muted">暂无帖子分享。</p>
-                {% endif %}
-            </div>
-        </div>
-
-        <div style="margin-top: 30px; border-top: 1px solid var(--glass-border); padding-top: 20px;">
             {% if not user %}
-                <a href="{{ url_for('login_twitter') }}" class="btn-twitter">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"></path>
-                    </svg>
-                    使用 𝕏 登录
-                </a>
-                <button id="metamask-btn" class="btn-metamask" onclick="loginWithMetaMask()">
-                    <span class="metamask-icon"></span>
-                    使用 MetaMask 登录
-                </button>
+            <div style="margin-top: 40px; border: 1px dashed #0f0; padding: 30px; text-align: center; background: rgba(0, 255, 0, 0.05);">
+                <h2 style="margin-top: 0;">AUTHENTICATION REQUIRED</h2>
+                <p class="muted">Access to write/interact restricted. Log in via X (Twitter) or Wallet to unlock full terminal capabilities.</p>
+                <div style="display: flex; flex-direction: column; gap: 15px; max-width: 350px; margin: 30px auto;">
+                    <a href="{{ url_for('login_twitter') }}" class="terminal-button">EXECUTE FOR_HUMANS (LOGIN_X)</a>
+                    <button id="metamask-btn" class="terminal-button" onclick="loginWithMetaMask()">EXECUTE FOR_POSTS (LOGIN_WALLET)</button>
+                </div>
+            </div>
             {% else %}
-                <div style="display: flex; gap: 10px;">
-                    <a href="{{ url_for('dashboard') }}" class="btn-twitter" style="background: var(--primary); color: white; width: 60%;">
-                        个人主页
-                    </a>
-                    <a href="{{ url_for('logout') }}" class="btn-secondary" style="margin-top: 0; width: 40%;">退出</a>
+                <div class="terminal-alert terminal-alert-primary" style="margin-top: 40px;">
+                    SESSION_ACTIVE: {{ user.name }} // AUTH: {{ user.login_type.upper() }}
                 </div>
             {% endif %}
-        </div>
+        </section>
+
+        <footer style="margin-top: 100px; border-top: 1px solid #0f0; padding-top: 20px; font-size: 0.8rem; text-align: center; opacity: 0.5;">
+            &copy; 2026 STAKING_BBS // ALL_SYSTEMS_OPERATIONAL
+        </footer>
     </div>
 
     <script>
         async function loginWithMetaMask() {
             if (typeof window.ethereum === 'undefined') {
-                alert('请安装 MetaMask 钱包!');
+                alert('ERR: METAMASK_NOT_DETECTED.');
                 return;
             }
             
             try {
                 const btn = document.getElementById('metamask-btn');
                 btn.disabled = true;
-                btn.textContent = '连接中...';
+                btn.textContent = 'CONNECTING...';
                 
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const address = accounts[0];
-                
                 const timestamp = Math.floor(Date.now() / 1000);
                 const message = `Welcome to Staking DApp!\n\nWallet: ${address}\nTimestamp: ${timestamp}`;
                 
@@ -99,54 +95,19 @@
                 });
                 
                 const result = await response.json();
-                
                 if (result.success) {
                     window.location.reload();
                 } else {
-                    alert('登录失败: ' + (result.error || '未知错误'));
+                    alert('ERR: AUTH_FAILED (' + (result.error || 'UNKNOWN') + ')');
                     btn.disabled = false;
-                    btn.innerHTML = `<svg viewBox="0 0 300 184" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M261.504 23.3751L171.733 82.9431L182.08 47.4161C182.372 46.4921 181.435 45.8121 180.589 46.2191L151.047 61.0831L141.36 41.1971C140.908 40.3161 139.681 40.4621 139.463 41.4231L130.418 90.4961L108.478 102.469C107.374 103.02 107.419 104.585 108.547 105.066L152.797 123.442L166.348 177.291C166.911 178.427 168.539 178.396 169.059 177.234L189.843 129.505L261.504 23.3751Z" fill="#E17726" stroke="#E17726" stroke-width="0.25"/>
-                        <path d="M38.4961 23.3751L128.267 82.9431L117.92 47.4161C117.628 46.4921 118.565 45.8121 119.411 46.2191L148.953 61.0831L158.64 41.1971C159.092 40.3161 160.319 40.4621 160.537 41.4231L169.582 90.4961L191.522 102.469C192.626 103.02 192.581 104.585 191.453 105.066L147.203 123.442L133.652 177.291C133.089 178.427 131.461 178.396 130.941 177.234L110.157 129.505L38.4961 23.3751Z" fill="#E27625" stroke="#E27625" stroke-width="0.25"/>
-                        <path d="M244.456 130.913L232.353 152.727C231.852 153.632 232.783 154.501 233.639 154.083L250.225 145.279L261.504 23.375L261.511 23.3692C261.635 22.9261 261.372 22.4561 260.911 22.3751L237.447 17.5611L214.035 30.6181C213.37 30.9811 213.406 31.9651 214.094 32.2801L244.456 130.913Z" fill="#E27625" stroke="#E27625" stroke-width="0.25"/>
-                        <path d="M55.5439 130.913L67.647 152.727C68.1481 153.632 67.2171 154.501 66.3609 154.083L49.7751 145.279L38.4959 23.375L38.4891 23.3692C38.3647 22.9261 38.6278 22.4561 39.0889 22.3751L62.5531 17.5611L85.9651 30.6181C86.6301 30.9811 86.5941 31.9651 85.9059 32.2801L55.5439 130.913Z" fill="#E27625" stroke="#E27625" stroke-width="0.25"/>
-                        <path d="M84.5491 57.6179L93.984 76.6809C94.3791 77.4699 95.5841 77.3999 95.897 76.5459L103.192 55.7299L84.5491 57.6179Z" fill="#E27625" stroke="#E27625" stroke-width="0.25"/>
-                        <path d="M206.808 57.6179L197.373 76.6809C196.978 77.4699 195.773 77.3999 195.46 76.5459L188.165 55.7299L206.808 57.6179Z" fill="#E27625" stroke="#E27625" stroke-width="0.25"/>
-                        <path d="M84.5491 57.6179L95.8971 76.5459C96.2101 77.3999 97.4149 77.4699 97.8101 76.6809L107.245 57.6179L84.5491 57.6179Z" fill="#D5BFB2" stroke="#D5BFB2" stroke-width="0.25"/>
-                        <path d="M197.373 76.6809L196.978 77.4699L206.413 57.6179L188.165 55.7299L195.46 76.5459C195.773 77.3999 196.978 77.4699 197.373 76.6809Z" fill="#233447" stroke="#233447" stroke-width="0.25"/>
-                        <path d="M95.8971 76.5459L85.9651 90.4961L106.747 130.913L145.683 140.999L143.795 108.865L151.047 61.0831L95.8971 76.5459Z" fill="#CC6228" stroke="#CC6228" stroke-width="0.25"/>
-                        <path d="M195.46 76.5459L249.87 53.6141C250.562 53.2911 250.337 52.2911 249.57 52.2911L217.98 52.2879L204.08 76.5459L195.46 76.5459Z" fill="#CC6228" stroke="#CC6228" stroke-width="0.25"/>
-                        <path d="M38.4959 23.375L85.9651 90.4961L65.183 130.913L106.747 130.913L95.8971 76.5459C95.5841 77.3999 94.3791 77.4699 93.984 76.6809L38.4959 23.375Z" fill="#E27525" stroke="#E27525" stroke-width="0.25"/>
-                        <path d="M249.87 53.6141L195.46 76.5459L204.08 76.5459L217.98 52.2879L249.87 53.6141Z" fill="#E27525" stroke="#E27525" stroke-width="0.25"/>
-                        <path d="M188.165 55.7299L196.978 77.4699L197.373 76.6809L188.538 55.7299L188.165 55.7299Z" fill="#E27525" stroke="#E27525" stroke-width="0.25"/>
-                        <path d="M107.245 57.6179L106.747 57.6179L97.8101 76.6809L97.4149 77.4699L103.192 55.7299L107.245 57.6179Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M139.463 41.4231L130.418 90.4961L143.795 108.865L145.683 140.999L150 150L152.797 123.442L159.092 32.2801C159.406 31.9651 159.37 30.9811 158.705 30.6181L139.463 41.4231Z" fill="#C0AC9D" stroke="#C0AC9D" stroke-width="0.25"/>
-                        <path d="M133.652 177.291L140.908 156.573C141.309 155.784 142.513 155.853 142.827 156.708L150 179.999L133.652 177.291Z" fill="#161616" stroke="#161616" stroke-width="0.25"/>
-                        <path d="M39.0889 22.3751L65.183 130.913L85.9651 90.4961L50.1209 53.6141C49.4289 53.2911 49.6539 52.2911 50.4209 52.2911L82.0109 52.2879L39.0889 22.3751Z" fill="#763E1A" stroke="#763E1A" stroke-width="0.25"/>
-                        <path d="M150 179.999L142.827 156.708C142.514 155.854 141.309 155.784 140.908 156.573L133.652 177.291L150 179.999Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M249.57 52.2911C250.337 52.2911 250.562 53.2911 249.87 53.6141L217.98 52.2879L218.377 51.2879C219.338 51.0839 220.072 50.2069 220.072 49.1449L220.07 34.9999C220.07 34.0229 219.276 33.2289 218.299 33.2289L205.299 33.2259C204.415 33.2259 203.69 32.5019 203.69 31.6169C203.69 30.7319 204.415 30.0079 205.299 30.0079L218.299 30.0049C220.995 30.0049 223.195 32.2059 223.195 34.8999L223.197 49.0449C223.197 50.8019 221.809 52.2859 220.073 52.4179L219.672 52.4179L233.639 154.083C234.034 154.872 235.239 154.942 235.553 156.101L244.456 130.913L250.225 145.279C250.883 146.586 250.194 148.221 248.705 148.577L227.524 154.286L226.924 153.286C226.279 152.101 225.133 151.283 223.795 151.283L210.795 151.279C209.91 151.279 209.185 150.555 209.185 149.669C209.185 148.784 209.91 148.06 210.795 148.06L223.795 148.056C224.68 148.056 225.405 148.78 225.405 149.666C225.405 150.089 225.264 150.482 225.022 150.808L224.422 151.808L238.447 17.5611C238.659 16.6671 237.979 15.7931 237.053 15.7931L196.053 15.7891C195.168 15.7891 194.444 15.0651 194.444 14.1791C194.444 13.2931 195.168 12.5691 196.053 12.5691L237.053 12.5651C239.749 12.5651 241.949 14.7651 241.949 17.4591L250 127.499L249.57 52.2911Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M82.0109 52.2879L95.8971 76.5459C96.2101 77.3999 97.4149 77.4699 97.8101 76.6809L106.747 57.6179L112.516 71.9729C112.829 72.8269 113.834 72.8959 114.228 72.1069L123.197 51.2879L82.0109 52.2879Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M65.183 130.913L69.2731 141.101C69.5861 141.954 70.5911 142.024 70.9861 141.234L79.4541 123.999L65.183 130.913Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M220.07 34.9999L220.072 49.1449C220.072 50.2069 219.338 51.0839 218.377 51.2879L217.98 52.2879L217.98 52.2879L218.377 51.2879C219.338 51.0839 220.072 50.2069 220.072 49.1449L220.07 34.9999ZM217.98 52.2879L217.98 52.2879L218.377 51.2879L218.377 51.2879L217.98 52.2879Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M205.299 33.2259L218.299 33.2289C219.276 33.2289 220.07 34.0229 220.07 34.9999L220.068 34.8957L220.068 34.8957L220.07 34.9999C220.07 34.0229 219.276 33.2289 218.299 33.2289L205.299 33.2259ZM220.068 34.8957L220.068 34.8957L220.07 34.9999L220.07 35.1041L220.068 34.9999L220.068 34.8957Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M196.053 12.5651L237.053 12.5691C237.979 12.5691 238.659 13.4421 238.447 14.3361L233.639 154.083C234.034 154.872 235.239 154.942 235.553 156.101L244.456 130.913L250 127.499L241.949 17.4591C241.949 14.7651 239.749 12.5651 237.053 12.5651L196.053 12.5651Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M82.0109 52.2879L83.4129 52.2879C84.3909 52.2879 85.1849 53.0819 85.1849 54.0589L85.1869 68.2039C85.1869 69.2659 84.4529 70.1429 83.4919 70.3469L83.0949 70.3469L69.2731 141.101C69.5861 141.954 70.5911 142.024 70.9861 141.234L79.4541 123.999L82.0109 52.2879Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M209.185 149.669C209.185 150.555 209.91 151.279 210.795 151.283L223.795 151.283C225.133 151.283 226.279 152.101 226.924 153.286L227.524 154.286L248.705 148.577C250.194 148.221 250.883 146.586 250.225 145.279L244.456 130.913L235.553 156.101C235.239 154.942 234.034 154.872 233.639 154.083L238.447 14.3361C238.659 13.4421 237.979 12.5691 237.053 12.5691L196.053 12.5651C195.168 12.5651 194.444 13.2891 194.444 14.1741C194.444 15.0601 195.168 15.7841 196.053 15.7841L237.053 15.7881C237.979 15.7881 238.659 16.6611 238.447 17.5551L224.422 151.802L225.022 150.802C225.264 150.476 225.405 150.083 225.405 149.66C225.405 148.774 224.68 148.05 223.795 148.05L210.795 148.046C209.91 148.046 209.185 148.77 209.185 149.656V149.669Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M85.1849 54.0589C85.1849 53.0819 84.3909 52.2879 83.4129 52.2879L82.0109 52.2879L79.4541 123.999L70.9861 141.234C70.5911 142.024 69.5861 141.954 69.2731 141.101L83.0949 70.3469L83.4919 70.3469C84.4529 70.1429 85.1869 69.2659 85.1869 68.2039L85.1849 54.0589Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M210.795 148.06C209.91 148.06 209.185 148.784 209.185 149.669V149.669C209.185 148.784 209.91 148.06 210.795 148.06Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M223.795 148.056C224.68 148.056 225.405 148.78 225.405 149.666V149.666C225.405 148.78 224.68 148.056 223.795 148.056Z" fill="#F5841F" stroke="#F5841F" stroke-width="0.25"/>
-                        <path d="M210.795 148.06C209.91 148.06 209.185 148.784 209.185 149.669C209.185 148.784 209.91 148.06 210.795 148.06Z" fill="white" stroke="white" stroke-width="0.25"/>
-                        <path d="M223.795 148.056C224.68 148.056 225.405 148.78 225.405 149.666C225.405 148.78 224.68 148.056 223.795 148.056Z" fill="white" stroke="white" stroke-width="0.25"/>
-                        <path d="M205.299 30.0079C204.415 30.0079 203.69 30.7319 203.69 31.6169C203.69 30.7319 204.415 30.0079 205.299 30.0079Z" fill="white" stroke="white" stroke-width="0.25"/>
-                        <path d="M196.053 12.5651C195.168 12.5651 194.444 13.2891 194.444 14.1741C194.444 13.2891 195.168 12.5651 196.053 12.5651Z" fill="white" stroke="white" stroke-width="0.25"/>
-                    </svg> 使用 MetaMask 登录`;
+                    btn.textContent = 'EXECUTE FOR_POSTS (LOGIN_WALLET)';
                 }
             } catch (error) {
                 console.error('MetaMask error:', error);
-                alert('连接失败: ' + error.message);
+                alert('ERR: CONNECTION_REJECTED.');
                 const btn = document.getElementById('metamask-btn');
                 btn.disabled = false;
-                btn.textContent = '使用 MetaMask 登录';
+                btn.textContent = 'EXECUTE FOR_POSTS (LOGIN_WALLET)';
             }
         }
     </script>

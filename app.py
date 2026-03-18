@@ -31,8 +31,10 @@ def get_or_create_user(address):
         
         return wallet_record.data[0], True
     except Exception as e:
-        logger.error(f"Error in get_or_create_user: {str(e)}")
-        raise
+        logger.error(f"❌ CRITICAL Error in get_or_create_user for address {address}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise e
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -78,7 +80,9 @@ def verify_wallet():
         user, is_new = get_or_create_user(address)
         
         session["user"] = {
+            "id": user["user_id"],
             "address": user["wallet_address"],
+            "name": f"{user['wallet_address'][:6]}...{user['wallet_address'][-4:]}",
             "login_type": "wallet",
             "created_at": user.get("created_at")
         }
@@ -97,6 +101,12 @@ def verify_wallet():
 @app.route("/")
 def index():
     user = session.get("user")
+    
+    # Session validation: ensure session user has an id to prevent template errors
+    if user and "id" not in user:
+        session.pop("user", None)
+        user = None
+        
     posts = []
     if supabase:
         try:
@@ -172,7 +182,8 @@ def auth_callback():
             "email": user.email,
             "name": user.user_metadata.get("full_name") or user.user_metadata.get("name") or "User",
             "avatar": user.user_metadata.get("avatar_url"),
-            "username": user.user_metadata.get("user_name") # X handle
+            "username": user.user_metadata.get("user_name"), # X handle
+            "login_type": "twitter"
         }
         
         logger.info(f"User {session['user']['name']} successfully logged in.")
@@ -184,7 +195,8 @@ def auth_callback():
 @app.route("/dashboard")
 def dashboard():
     user = session.get("user")
-    if not user:
+    if not user or "id" not in user:
+        session.pop("user", None)
         return redirect(url_for("index"))
     return render_template("dashboard.html", user=user)
 
