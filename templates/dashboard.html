@@ -3,41 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>控制面板 - X Login</title>
+    <title>控制面板 - 𝕏 Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container" style="max-width: 500px;">
+    <div class="container" style="max-width: 500px; padding: 40px;">
         <div class="user-card">
             {% if user.avatar %}
                 <img src="{{ user.avatar }}" alt="Avatar" class="avatar">
             {% else %}
-                <div class="avatar" style="background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 2rem;">👤</div>
+                <div class="avatar" style="background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--text-muted);">
+                    👤
+                </div>
             {% endif %}
-            <h1>控制面板</h1>
-            <p class="muted">登录成功。欢迎回到您的工作台。</p>
+            
+            <div style="text-align: center;">
+                <h1 style="margin-bottom: 5px;">{{ user.name }}</h1>
+                {% if user.username %}
+                    <p style="color: var(--primary); font-weight: 600;">@{{ user.username }}</p>
+                {% endif %}
+            </div>
+            
+            <p class="muted" style="margin-bottom: 20px;">身份验证成功。欢迎回到您的工作台。</p>
         </div>
 
         <div class="dashboard-grid">
             <div class="info-item">
-                <span class="label">姓名</span>
-                <span class="value">{{ user.name }}</span>
-            </div>
-            <div class="info-item">
-                <span class="label">ID</span>
-                <span class="value">{{ user.id[:18] }}...</span>
+                <span class="label">账户 ID</span>
+                <span class="value">{{ user.id[:20] }}...</span>
             </div>
             {% if user.email %}
             <div class="info-item">
-                <span class="label">电子邮箱</span>
+                <span class="label">绑定邮箱</span>
                 <span class="value">{{ user.email }}</span>
             </div>
             {% endif %}
+            <div class="info-item">
+                <span class="label">登录方式</span>
+                <span class="value" style="display: flex; align-items: center; gap: 8px;">
+                    <svg viewBox="0 0 24 24" fill="white" width="14" height="14">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z"></path>
+                    </svg>
+                    X (Twitter) OAuth 2.0
+                </span>
+            </div>
         </div>
 
-        <div style="margin-top: 2rem;">
-            <a href="{{ url_for('logout') }}" class="btn-secondary">安全退出</a>
+        <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
+            <a href="{{ url_for('index') }}" class="btn-secondary" style="padding: 10px 20px;">返回主页</a>
+            <a href="{{ url_for('logout') }}" class="btn-secondary" style="background: rgba(255, 68, 68, 0.1); color: #ff4444; border-color: rgba(255, 68, 68, 0.2); padding: 10px 20px;">安全退出</a>
         </div>
     </div>
 </body>
