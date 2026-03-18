@@ -1,8 +1,38 @@
 import os
 import logging
+import time
 from flask import Flask, redirect, request, render_template, session, url_for, jsonify
 from supabase import create_client, Client
+from supabase.lib.client_options import SyncClientOptions
 from dotenv import load_dotenv
+
+MESSAGE_TTL = 300  # 5 minutes
+
+def get_or_create_user(address):
+    address = address.lower()
+    try:
+        response = supabase.table("wallets").select("*").eq("wallet_address", address).execute()
+        if response.data:
+            supabase.table("wallets").update({"last_login": "now()"}).eq("wallet_address", address).execute()
+            return response.data[0], False
+        
+        new_user = supabase.auth.admin.create_user({
+            "email": f"{address}@wallet.local",
+            "password": os.urandom(32).hex(),
+            "email_confirm": True,
+            "user_metadata": {"wallet_address": address}
+        })
+        user_id = new_user.user.id
+        
+        wallet_record = supabase.table("wallets").insert({
+            "user_id": user_id,
+            "wallet_address": address
+        }).execute()
+        
+        return wallet_record.data[0], True
+    except Exception as e:
+        logger.error(f"Error in get_or_create_user: {str(e)}")
+        raise
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -14,20 +44,55 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-at-least-32-chars")
 
-# Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-# SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    logger.error("❌ CRITICAL: Missing SUPABASE_URL or SUPABASE_ANON_KEY in .env")
+    logger.error("❌ CRITICAL: Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env")
 
-# Initialize Supabase Client
 try:
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL else None
+    supabase: Client = create_client(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+        options=SyncClientOptions(auto_refresh_token=False, persist_session=False)
+    ) if SUPABASE_URL else None
 except Exception as e:
     logger.error(f"❌ Failed to initialize Supabase: {str(e)}")
     supabase = None
+
+
+@app.route("/api/auth/wallet/verify", methods=["POST"])
+def verify_wallet():
+    data = request.get_json()
+    address = data.get("address", "").lower()
+    signature = data.get("signature", "")
+    timestamp = data.get("timestamp", 0)
+    
+    if not address or not signature:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    if abs(time.time() - timestamp) > MESSAGE_TTL:
+        return jsonify({"error": "Request expired"}), 401
+    
+    try:
+        user, is_new = get_or_create_user(address)
+        
+        session["user"] = {
+            "address": user["wallet_address"],
+            "login_type": "wallet",
+            "created_at": user.get("created_at")
+        }
+        
+        return jsonify({
+            "success": True,
+            "is_new_user": is_new,
+            "user": {
+                "address": user["wallet_address"],
+                "created_at": user.get("created_at")
+            }
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/")
 def index():

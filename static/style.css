@@ -121,6 +121,46 @@ h1 {
   height: 20px;
 }
 
+.btn-metamask {
+  margin-top: 12px;
+  background: #f6851b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  height: 56px;
+  border-radius: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(246, 133, 27, 0.3);
+}
+
+.btn-metamask:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(246, 133, 27, 0.4);
+  background: #e67610;
+}
+
+.btn-metamask:active {
+  transform: scale(0.97);
+}
+
+.btn-metamask:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-metamask svg {
+  width: 24px;
+  height: 24px;
+}
+
 .btn-secondary {
   margin-top: 1.5rem;
   background: transparent;
