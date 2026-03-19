@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STAKING_BBS // Stake USDC</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .staking-container {
+            max-width: 600px;
+            margin: 50px auto;
+            border: 2px solid var(--terminal-green);
+            padding: 40px;
+            background: rgba(0, 255, 0, 0.05);
+            box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .staking-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: var(--terminal-green);
+            animation: scanline 2s linear infinite;
+            opacity: 0.5;
+        }
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(400px); }
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 40px;
+            font-weight: bold;
+        }
+        .step {
+            opacity: 0.5;
+        }
+        .step.active {
+            opacity: 1;
+            color: var(--terminal-black);
+            background: var(--terminal-green);
+            padding: 2px 10px;
+        }
+        .usdc-amount {
+            font-size: 3rem;
+            text-align: center;
+            margin: 30px 0;
+            text-shadow: 0 0 10px var(--terminal-green);
+        }
+        .loading-bar {
+            width: 100%;
+            height: 10px;
+            border: 1px solid var(--terminal-green);
+            margin-top: 20px;
+            display: none;
+        }
+        .loading-progress {
+            height: 100%;
+            background: var(--terminal-green);
+            width: 0%;
+        }
+    </style>
+</head>
+<body class="terminal">
+    <div class="container">
+        <header class="terminal-nav">
+            <div class="terminal-logo">
+                <div class="logo terminal-prompt"><a href="/" style="color: #0f0; text-decoration: none;">STAKING_BBS V1.0</a></div>
+            </div>
+        </header>
+
+        <section>
+            <div class="staking-container">
+                <div class="step-indicator">
+                    <span class="step active">01_STAKE_USDC</span>
+                    <span class="step">02_COMPOSE_POST</span>
+                </div>
+
+                <h2 class="terminal-prompt" style="font-size: 1.6rem; border-bottom: 1px dashed var(--terminal-green); padding-bottom: 10px; margin-bottom: 30px; text-shadow: 0 0 5px var(--terminal-green);">REQUIRED_ACTION: STAKE_RESERVE</h2>
+                
+                <p style="color: var(--terminal-green); opacity: 0.8; font-size: 1rem;">To prevent spam and ensure quality, all wallet-based transmissions require a <span style="font-weight: bold; border-bottom: 1px solid var(--terminal-green);">minimum staking reserve of 10.00 USDC</span>.</p>
+
+
+                
+                <div class="usdc-amount">10.00 USDC</div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="stake-button" class="terminal-button" onclick="performStake()">INITIATE_STAKING_SEQUENCE</button>
+                    <p id="status-text" class="muted" style="margin-top: 15px;">WAITING_FOR_USER_CONFIRMATION...</p>
+                    
+                    <div id="loading-bar" class="loading-bar">
+                        <div id="loading-progress" class="loading-progress"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px; font-size: 0.8rem; border-top: 1px dashed var(--terminal-green); padding-top: 20px;">
+                    <span class="label">SECURITY_NOTICE</span>
+                    Funds are locked in the protocol vault to ensure transmission quality. 
+                    <strong>Staking is 100% refundable</strong> after your post has been live for 24 hours, meaning your communication is effectively <strong>FREE</strong>.
+                </div>
+
+            </div>
+        </section>
+
+        <footer style="margin-top: 60px; text-align: center;">
+            <a href="/" style="color: inherit;">[ BACK_TO_TERMINAL ]</a>
+        </footer>
+    </div>
+
+    <script>
+        async function performStake() {
+            const btn = document.getElementById('stake-button');
+            const status = document.getElementById('status-text');
+            const loader = document.getElementById('loading-bar');
+            const progress = document.getElementById('loading-progress');
+            
+            btn.disabled = true;
+            btn.textContent = 'EXECUTING...';
+            status.textContent = 'CONNECTING_TO_WALLET_CLIENT...';
+            loader.style.display = 'block';
+
+            // Simulate blockchain transaction
+            let p = 0;
+            const interval = setInterval(() => {
+                p += Math.random() * 15;
+                if (p >= 100) {
+                    p = 100;
+                    clearInterval(interval);
+                    completeStaking();
+                }
+                progress.style.width = p + '%';
+                
+                if (p > 30) status.textContent = 'AWAITING_BLOCK_CONFIRMATION...';
+                if (p > 70) status.textContent = 'FINALIZING_LEDGER_UPDATE...';
+            }, 300);
+        }
+
+        async function completeStaking() {
+            const status = document.getElementById('status-text');
+            status.textContent = 'TX_SUCCESS: STAKE_CONFIRMED';
+            
+            try {
+                const response = await fetch('/stake', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    status.innerHTML = '<span style="color: #fff;">STAKE_SUCCESS! REDIRECTING_TO_COMPOSER...</span>';
+                    setTimeout(() => {
+                        window.location.href = '/post/new';
+                    }, 1500);
+                } else {
+                    alert('ERR: DB_UPDATE_FAILED');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('ERR: NETWORK_ERROR');
+            }
+        }
+    </script>
+</body>
+</html>

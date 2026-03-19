@@ -37,10 +37,24 @@
                 </ul>
             </div>
 
-            <div style="margin-top: 40px; display: flex; gap: 20px;">
-                <a href="/" class="terminal-button terminal-button-default">GO HOME</a>
-                <a href="{{ url_for('logout') }}" class="terminal-button terminal-button-error" style="border: 1px solid #f00; color: #f00;">LOGOUT</a>
+            <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
+                {% if user.login_type == 'wallet' %}
+                    <a href="{{ url_for('new_post') }}" class="terminal-button" style="display: inline-block;">CREATE NEW POST</a>
+                {% else %}
+                    <div style="position: relative;" class="has-tooltip">
+                        <button class="terminal-button" style="opacity: 0.3; cursor: not-allowed; border: 1px solid #555;">CREATE NEW POST</button>
+                        <div class="terminal-tooltip" style="position: absolute; top: 0; left: 105%; margin-top: 0; margin-left: 10px; transform: none; right: auto;">
+                            WALLET_AUTH_REQUIRED // Only wallet users can post. Staking is 100% refundable, making it essentially free.
+                        </div>
+                    </div>
+                {% endif %}
+                <div style="display: flex; gap: 20px;">
+                    <a href="/" class="terminal-button terminal-button-default">GO HOME</a>
+                    <a href="{{ url_for('logout') }}" class="terminal-button terminal-button-error" style="border: 1px solid #f00; color: #f00;">LOGOUT</a>
+                </div>
             </div>
+
+
         </section>
 
         <footer style="margin-top: 60px; border-top: 1px solid #0f0; padding-top: 20px; font-size: 0.8rem; text-align: center;">

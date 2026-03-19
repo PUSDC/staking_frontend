@@ -115,3 +115,31 @@ footer {
 .terminal-card h1 {
     color: #39FF14;
 }
+
+/* Tooltips */
+.has-tooltip:hover .terminal-tooltip {
+    display: block;
+}
+.terminal-tooltip {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    max-width: 250px;
+    background: #f00;
+    color: #fff;
+    padding: 10px;
+    font-size: 0.75rem;
+    z-index: 1000;
+    border: 1px solid #fff;
+    margin-top: 10px;
+}
+.terminal-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 15px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent transparent #f00 transparent;
+}

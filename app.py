@@ -85,6 +85,7 @@ def verify_wallet():
             "address": user["wallet_address"],
             "name": f"{user['wallet_address'][:6]}...{user['wallet_address'][-4:]}",
             "login_type": "wallet",
+            "is_staked": user.get("is_staked", False),
             "created_at": user.get("created_at")
         }
         
@@ -93,20 +94,88 @@ def verify_wallet():
             "is_new_user": is_new,
             "user": {
                 "address": user["wallet_address"],
-                "created_at": user.get("created_at")
+                "created_at": user.get("created_at"),
+                "is_staked": user.get("is_staked", False)
             }
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/stake", methods=["GET", "POST"])
+def stake():
+    user = session.get("user")
+    if not user or user.get("login_type") != "wallet":
+        return redirect(url_for("index"))
+    
+    if request.method == "POST":
+        address = user.get("address")
+        if supabase and address:
+            try:
+                supabase.table("wallets").update({"is_staked": True}).eq("wallet_address", address).execute()
+                user["is_staked"] = True
+                session["user"] = user
+                return jsonify({"success": True})
+            except Exception as e:
+                logger.error(f"Error updating staking: {str(e)}")
+                return jsonify({"error": str(e)}), 500
+        # Fail gracefully if supabase isn't configged but for design process we can skip
+        user["is_staked"] = True
+        session["user"] = user
+        return jsonify({"success": True})
+
+    return render_template("stake.html", user=user)
+
+@app.route("/post/new", methods=["GET", "POST"])
+def new_post():
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("index"))
+    
+    # Requirement: only wallet users can post
+    if user.get("login_type") != "wallet":
+        return redirect(url_for("index"))
+    
+    if not user.get("is_staked"):
+        return redirect(url_for("stake"))
+
+            
+    if request.method == "POST":
+        title = request.form.get("title")
+        content = request.form.get("content")
+        
+        if not title or not content:
+            return "Missing title or content", 400
+            
+        if supabase:
+            try:
+                supabase.table("staking_posts").insert({
+                    "title": title,
+                    "content": content,
+                    "author_id": user.get("id"),
+                    "author_name": user.get("name")
+                }).execute()
+                return redirect(url_for("index"))
+            except Exception as e:
+                logger.error(f"Error creating post: {str(e)}")
+                return f"Error: {str(e)}", 500
+        
+        return redirect(url_for("index"))
+
+    return render_template("create_post.html", user=user)
+
+
 @app.route("/")
 def index():
     user = session.get("user")
     
-    # Session validation: ensure session user has all required fields to prevent template errors
-    if user and ("id" not in user or "login_type" not in user):
-        session.pop("user", None)
-        user = None
+    if user:
+        if "login_type" not in user or "id" not in user:
+            session.pop("user", None)
+            user = None
+        elif user.get("login_type") == "wallet" and "address" not in user:
+            session.pop("user", None)
+            user = None
+
         
     # Pagination logic
     page = request.args.get("page", 1, type=int)
