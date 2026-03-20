@@ -11,6 +11,12 @@ MESSAGE_TTL = 300  # 5 minutes
 
 def get_or_create_user(address):
     address = address.lower()
+    
+    # Reset Postgrest auth to service role to avoid session pollution from Twitter login
+    # service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    # if service_key:
+    #     supabase.postgrest.auth(service_key)
+        
     try:
         response = supabase.table("wallets").select("*").eq("wallet_address", address).execute()
         if response.data:
@@ -37,6 +43,7 @@ def get_or_create_user(address):
         logger.error(traceback.format_exc())
         raise e
 
+
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -62,6 +69,16 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to initialize Supabase: {str(e)}")
     supabase = None
+
+@app.before_request
+def reset_supabase_auth():
+    """
+    Ensure the global supabase client is reset to service_role state 
+    before each request to avoid session pollution between users.
+    """
+    if supabase and SUPABASE_KEY:
+        supabase.postgrest.auth(SUPABASE_KEY)
+
 
 
 @app.route("/api/auth/wallet/verify", methods=["POST"])
@@ -100,6 +117,7 @@ def verify_wallet():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/stake", methods=["GET", "POST"])
 def stake():
