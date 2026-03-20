@@ -143,6 +143,54 @@ def stake():
 
     return render_template("stake.html", user=user)
 
+@app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
+def edit_post(post_id):
+    user = session.get("user")
+    if not user:
+        return redirect(url_for("index"))
+        
+    post = None
+    if supabase:
+        try:
+            response = supabase.table("staking_posts") \
+                .select("*") \
+                .eq("id", post_id) \
+                .single() \
+                .execute()
+            post = response.data
+        except Exception as e:
+            logger.error(f"Error fetching post {post_id} for edit: {str(e)}")
+            
+    if not post:
+        return "DECRYPT_ERROR: DATA_PACKET_NOT_FOUND", 404
+        
+    # Check if the user is the author
+    if user.get("id") != post.get("user") and user.get("id") != post.get("author_id"):
+        return "UNAUTHORIZED_ACCESS: KEY_MISMATCH", 403
+        
+    if request.method == "POST":
+        title = request.form.get("title")
+        content = request.form.get("content")
+        
+        if not title or not content:
+            return "Missing title or content", 400
+            
+        if supabase:
+            try:
+                supabase.table("staking_posts") \
+                    .update({"title": title, "content": content}) \
+                    .eq("id", post_id) \
+                    .execute()
+                return redirect(url_for("post_detail", post_id=post_id))
+            except Exception as e:
+                logger.error(f"Error updating post {post_id}: {str(e)}")
+                return f"Error: {str(e)}", 500
+                
+        return redirect(url_for("post_detail", post_id=post_id))
+
+    return render_template("edit_post.html", user=user, post=post)
+
+
 @app.route("/post/new", methods=["GET", "POST"])
 def new_post():
     user = session.get("user")
@@ -169,6 +217,7 @@ def new_post():
                 supabase.table("staking_posts").insert({
                     "title": title,
                     "content": content,
+                    "user": user.get("id"),
                     "author_id": user.get("id"),
                     "author_name": user.get("name")
                 }).execute()
@@ -206,6 +255,7 @@ def index():
             # Execute the specified query with limit and calculated offset
             response = supabase.table("staking_posts") \
                 .select("*") \
+                .eq("live", True) \
                 .order("id", desc=True) \
                 .limit(page_size) \
                 .offset(offset) \

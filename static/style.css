@@ -59,6 +59,13 @@ body {
 .post-item {
     border-bottom: 1px dashed rgba(57, 255, 20, 0.3);
     padding: 2.5rem 0;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.post-item:hover {
+    background: rgba(57, 255, 20, 0.05);
+    border-bottom: 1px dashed rgba(57, 255, 20, 0.8);
 }
 
 .post-item:last-child {
