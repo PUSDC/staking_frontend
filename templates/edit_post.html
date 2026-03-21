@@ -121,7 +121,6 @@
     
                     const result = await response.json();
                     if (result.success) {
-                        alert('TRANSMISSION_ACTIVATED: DATA_PACKET_IS_NOW_LIVE_ON_FEED.');
                         window.location.reload();
                     } else {
                         alert(`ERR: ACTIVATION_FAILED (${result.error || 'UNKNOWN'})`);

@@ -124,11 +124,7 @@ def make_post_live(post_id):
     user = session.get("user")
     if not user or user.get("login_type") != "wallet":
         return jsonify({"error": "Unauthorized"}), 403
-    
-    # User must be staked to make a post live
-    if not user.get("is_staked"):
-        return jsonify({"error": "STAKE_REQUIRED"}), 402 # Using 402 for 'Payment Required' context
-        
+
     if supabase:
         try:
             # Verify ownership
@@ -140,6 +136,7 @@ def make_post_live(post_id):
             if post.get("user") != user["id"] and post.get("author_id") != user["id"]:
                 return jsonify({"error": "UNAUTHORIZED_ACCESS"}), 403
                 
+            # Perform update
             supabase.table("staking_posts").update({"live": True}).eq("id", post_id).execute()
             return jsonify({"success": True})
         except Exception as e:
@@ -149,28 +146,12 @@ def make_post_live(post_id):
     return jsonify({"success": True})
 
 
-@app.route("/stake", methods=["GET", "POST"])
+@app.route("/stake", methods=["GET"])
 def stake():
     user = session.get("user")
     if not user or user.get("login_type") != "wallet":
         return redirect(url_for("index"))
     
-    if request.method == "POST":
-        address = user.get("address")
-        if supabase and address:
-            try:
-                supabase.table("wallets").update({"is_staked": True}).eq("wallet_address", address).execute()
-                user["is_staked"] = True
-                session["user"] = user
-                return jsonify({"success": True})
-            except Exception as e:
-                logger.error(f"Error updating staking: {str(e)}")
-                return jsonify({"error": str(e)}), 500
-        # Fail gracefully if supabase isn't configged but for design process we can skip
-        user["is_staked"] = True
-        session["user"] = user
-        return jsonify({"success": True})
-
     return render_template("stake.html", user=user)
 
 

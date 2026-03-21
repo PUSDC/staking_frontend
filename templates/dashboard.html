@@ -89,6 +89,9 @@
                             <div class="post-item" style="border-bottom: none; padding: 1.5rem 0 1.5rem 20px;">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                                     <span class="label">ENTRY_{{ post.id }}</span>
+                                    <span class="label"
+                                        style="background: rgba(57, 255, 20, 0.1); color: var(--terminal-green); border: 1px solid rgba(57,255,20,0.3);">
+                                        {{ post.staking }}</span>
                                     {% if post.live %}
                                     <span class="label"
                                         style="background: var(--terminal-green); color: var(--terminal-black); font-size: 0.7rem;">LIVE</span>
@@ -108,15 +111,18 @@
                             </div>
                         </a>
 
-                        <div style="padding: 0 20px;">
-                            <button onclick="withdrawReserve()" class="terminal-button tooltip-trigger"
+                        <div style="display: flex; gap: 10px; padding: 0 20px;">
+                            <button onclick="withdrawReserve({{ post.staking.split(':')[1] }})"
+                                class=" terminal-button tooltip-trigger"
                                 style="border-color: #f00 !important; color: #f00 !important; padding: 4px 12px; font-size: 0.7rem; white-space: nowrap;">
                                 WITHDRAW_RESERVE
                             </button>
+                            {% if not post.live %}
                             <button onclick="makeLive('{{ post.id }}')" class="terminal-button"
                                 style="border-color: #ff0 !important; color: #ff0 !important; padding: 4px 12px; font-size: 0.7rem; white-space: nowrap;">
                                 MAKE_LIVE
                             </button>
+                            {% endif %}
                         </div>
                     </div>
                     {% endfor %}
@@ -297,9 +303,14 @@
             }
         };
 
-        const withdrawReserve = async () => {
+        const withdrawReserve = async (stakingId) => {
             if (typeof window.ethereum === 'undefined') {
                 alert('ERR: METAMASK_NOT_DETECTED');
+                return;
+            }
+
+            if (!stakingId || stakingId === 'None' || stakingId === '') {
+                alert('ERR: STAKING_ID_MISSING_FROM_SYSTEM_REGISTRY');
                 return;
             }
 
@@ -312,41 +323,21 @@
 
                 const provider = new ethers.BrowserProvider(window.ethereum);
                 const signer = await provider.getSigner();
-                const signerAddress = await signer.getAddress();
                 const stakingContract = new ethers.Contract(STAKING_ADDR, STAKING_ABI, signer);
 
-                // 1. Query actual balance
-                console.log('Fetching user staked balance...');
-                const activeBalance = await getUserStakedBalance(signerAddress, stakingContract);
-
-                if (activeBalance <= 0n) {
-                    alert('ERR: ZERO_BALANCE_DETECTED_IN_PROTOCOL');
+                if (!confirm(`STAKING_WITHDRAWAL_NOTICE: Confirming this action will release the reserve for STAKING_ID ${stakingId}. The decentralized indexer will de-broadcast your transmission once confirmed. CONTINUE?`)) {
                     return;
                 }
 
-                const humanReadable = (Number(activeBalance) / 1000000).toFixed(2);
-                if (!confirm(`STAKING_WITHDRAWAL_NOTICE: Confirming this action will IMMEDIATELY de-broadcast all your transmissions and return your ${humanReadable} USDC reserve from the protocol. CONTINUE?`)) {
-                    return;
-                }
-
-                console.log(`Initiating blockchain withdrawal for ${humanReadable} USDC...`);
-                const tx = await stakingContract.withdraw(activeBalance);
+                console.log(`Initiating blockchain withdrawal for ID: ${stakingId}`);
+                const tx = await stakingContract.withdraw(stakingId);
                 console.log(`TX_SENT: ${tx.hash}`);
 
                 await tx.wait();
                 console.log('TX_CONFIRMED');
 
-                // Now notify the backend to take posts offline
-                const response = await fetch('/unstake', {
-                    method: 'POST'
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    window.location.reload();
-                } else {
-                    alert(`ERR: BACKEND_UPDATE_FAILED (${result.error || 'UNKNOWN'})`);
-                }
+                alert('WITHDRAWAL_SUCCESS: Your reserve request processed. Transmission status will update via indexer.');
+                window.location.reload();
             } catch (err) {
                 console.error(err);
                 alert(`ERR: ${err.reason || err.message || 'TRANSACTION_FAILED'}`);
