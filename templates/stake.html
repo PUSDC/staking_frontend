@@ -376,13 +376,26 @@
                 throw new Error('STAKING_DEPOSIT_FAILED');
             }
 
+            progress.style.width = '90%';
+            status.textContent = 'SYNCING_WITH_DATABASE...';
+
+            const createPostResponse = await fetch('/api/create_post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tx_hash: depositHash })
+            });
+
+            const createPostResult = await createPostResponse.json();
+            if (!createPostResponse.ok || !createPostResult.success) {
+                throw new Error(createPostResult.error || 'FAILED_TO_CREATE_POST_ENTRY');
+            }
+
             progress.style.width = '100%';
-            status.innerHTML = '<span style="color: #fff;">COMMITMENT_CONFIRMED! YOU CAN NOW POST.</span>';
+            status.innerHTML = '<span style="color: #fff;">COMMITMENT_CONFIRMED! REDIRECTING...</span>';
 
             setTimeout(() => {
-                alert('SUCCESS: Commitment made! You can now post your request. When fulfilled, withdraw to auto-expire.');
-                window.location.href = '/my_posts';
-            }, 2000);
+                window.location.href = `/post/${createPostResult.post_id}/edit`;
+            }, 1000);
 
             // } catch (err) {
             //     console.error(err);

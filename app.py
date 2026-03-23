@@ -273,7 +273,7 @@ def edit_post(post_id):
     return render_template("edit_post.html", user=user, post=post)
 
 
-@app.route("/api/create_post", methods=["GET", "POST"])
+@app.route("/api/create_post", methods=["POST"])
 def create_post():
     user = session.get("user")
     if not user:
@@ -281,7 +281,6 @@ def create_post():
     
     if user.get("login_type") != "wallet":
         return jsonify({"error": "Unauthorized"}), 403
-    print(1)
 
     tx_hash = request.args.get("tx_hash") or \
               request.form.get("tx_hash") or \
@@ -289,31 +288,40 @@ def create_post():
               
     if not tx_hash:
         return jsonify({"error": "Missing tx_hash"}), 400
-    print(2)
 
     staking_id, error = verify_staking_tx_and_get_id(tx_hash, user.get("address"))
     if not staking_id:
         return jsonify({"error": error or "Could not verify staking transaction"}), 400
-    print(3)
     print(f"Staking ID: {staking_id}")
     
     staking_label = f"base:{staking_id}"
+    
+    # Check for existing post with this staking_label
+    try:
+        existing = supabase.table("staking_posts") \
+            .select("id") \
+            .eq("staking", staking_label) \
+            .execute()
+        
+        if existing.data:
+            return jsonify({"success": True, "post_id": existing.data[0]["id"]})
+    except Exception as e:
+        logger.error(f"Error checking existing post: {str(e)}")
+
     post_data = {
         "user": user.get("id"),
         "staking": staking_label
     }
-    
-    if supabase:
-        try:
-            response = supabase.table("staking_posts").insert(post_data).execute()
-            if response.data:
-                new_post_id = response.data[0]["id"]
-                return jsonify({"success": True, "post_id": new_post_id})
-            return jsonify({"error": "Failed to create post"}), 500
-        except Exception as e:
-            logger.error(f"Error creating post: {str(e)}")
-            return jsonify({"error": str(e)}), 500
 
+    new_post_id = None
+    try:
+        response = supabase.table("staking_posts").insert(post_data).execute()
+        if response.data:
+
+            new_post_id = response.data[0]["id"]
+            return jsonify({"success": True, "post_id": new_post_id})
+    except Exception as e:
+        logger.error(f"Error creating post: {str(e)}")
 
 @app.route("/")
 def index():
