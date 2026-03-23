@@ -63,21 +63,21 @@ def verify_staking_tx_and_get_id(tx_hash, user_address):
         return None, str(e)
 
 
-def refresh_wallet_session():
-    user = session.get("user")
-    if not user or user.get("login_type") != "wallet" or not supabase:
-        return user
+# def refresh_wallet_session():
+#     user = session.get("user")
+#     if not user or user.get("login_type") != "wallet" or not supabase:
+#         return user
 
-    try:
-        response = supabase.table("wallets").select("*").eq("wallet_address", user["address"].lower()).limit(1).execute()
-        if response.data:
-            wallet = response.data[0]
-            user["created_at"] = wallet.get("created_at", user.get("created_at"))
-            session["user"] = user
-    except Exception as e:
-        logger.error(f"Failed to refresh wallet session for {user.get('address')}: {str(e)}")
+#     try:
+#         response = supabase.table("wallets").select("*").eq("wallet_address", user["address"].lower()).limit(1).execute()
+#         if response.data:
+#             wallet = response.data[0]
+#             user["created_at"] = wallet.get("created_at", user.get("created_at"))
+#             session["user"] = user
+#     except Exception as e:
+#         logger.error(f"Failed to refresh wallet session for {user.get('address')}: {str(e)}")
 
-    return user
+#     return user
 
 def get_or_create_user(address):
     address = address.lower()
@@ -148,7 +148,7 @@ def reset_supabase_auth():
     """
     if supabase and SUPABASE_KEY:
         supabase.postgrest.auth(SUPABASE_KEY)
-    refresh_wallet_session()
+    # refresh_wallet_session()
 
 
 
@@ -482,7 +482,7 @@ def my_posts():
         if not first_staking_id and staking_id:
             first_staking_id = staking_id
 
-    return render_template("dashboard.html", user=user, posts=user_posts, first_staking_id=first_staking_id)
+    return render_template("my_posts.html", user=user, posts=user_posts, first_staking_id=first_staking_id)
 
 
 @app.route("/logout")
