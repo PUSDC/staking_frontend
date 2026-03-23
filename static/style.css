@@ -34,6 +34,12 @@ body {
 .terminal-menu ul li a {
     color: var(--terminal-green) !important;
     font-weight: 700;
+    border: 1px solid var(--terminal-green);
+    padding: 4px 8px;
+}
+
+.menu-item {
+    border: 1px solid var(--terminal-green);
 }
 
 /* Card Improvements */
