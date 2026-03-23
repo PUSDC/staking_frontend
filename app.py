@@ -9,6 +9,24 @@ from dotenv import load_dotenv
 
 MESSAGE_TTL = 300  # 5 minutes
 
+
+def refresh_wallet_session():
+    user = session.get("user")
+    if not user or user.get("login_type") != "wallet" or not supabase:
+        return user
+
+    try:
+        response = supabase.table("wallets").select("*").eq("wallet_address", user["address"].lower()).limit(1).execute()
+        if response.data:
+            wallet = response.data[0]
+            user["is_staked"] = wallet.get("is_staked", False)
+            user["created_at"] = wallet.get("created_at", user.get("created_at"))
+            session["user"] = user
+    except Exception as e:
+        logger.error(f"Failed to refresh wallet session for {user.get('address')}: {str(e)}")
+
+    return user
+
 def get_or_create_user(address):
     address = address.lower()
     
@@ -78,6 +96,7 @@ def reset_supabase_auth():
     """
     if supabase and SUPABASE_KEY:
         supabase.postgrest.auth(SUPABASE_KEY)
+    refresh_wallet_session()
 
 
 
@@ -124,6 +143,8 @@ def make_post_live(post_id):
     user = session.get("user")
     if not user or user.get("login_type") != "wallet":
         return jsonify({"error": "Unauthorized"}), 403
+    if not user.get("is_staked"):
+        return jsonify({"error": "STAKING_REQUIRED"}), 402
 
     if supabase:
         try:
@@ -153,6 +174,56 @@ def stake():
         return redirect(url_for("index"))
     
     return render_template("stake.html", user=user)
+
+
+@app.route("/api/staking/activate", methods=["POST"])
+def activate_staking():
+    user = session.get("user")
+    if not user or user.get("login_type") != "wallet":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(silent=True) or {}
+    tx_hash = (data.get("txHash") or "").strip()
+    if not tx_hash:
+        return jsonify({"error": "Missing txHash"}), 400
+
+    if not supabase:
+        user["is_staked"] = True
+        session["user"] = user
+        return jsonify({"success": True})
+
+    try:
+        supabase.table("wallets").update({"is_staked": True}).eq("wallet_address", user["address"].lower()).execute()
+        user["is_staked"] = True
+        session["user"] = user
+        return jsonify({"success": True})
+    except Exception as e:
+        logger.error(f"Failed to activate staking state for {user.get('address')}: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/staking/deactivate", methods=["POST"])
+def deactivate_staking():
+    user = session.get("user")
+    if not user or user.get("login_type") != "wallet":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    data = request.get_json(silent=True) or {}
+    tx_hash = (data.get("txHash") or "").strip()
+    if not tx_hash:
+        return jsonify({"error": "Missing txHash"}), 400
+
+    if supabase:
+        try:
+            supabase.table("wallets").update({"is_staked": False}).eq("wallet_address", user["address"].lower()).execute()
+            supabase.table("staking_posts").update({"live": False}).eq("user", user["id"]).execute()
+        except Exception as e:
+            logger.error(f"Failed to deactivate staking state for {user.get('address')}: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    user["is_staked"] = False
+    session["user"] = user
+    return jsonify({"success": True})
 
 
 @app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
@@ -394,7 +465,22 @@ def dashboard():
         except Exception as e:
             logger.error(f"Error fetching user posts: {str(e)}")
 
-    return render_template("dashboard.html", user=user, posts=user_posts)
+    first_staking_id = ""
+    for post in user_posts:
+        staking_value = post.get("staking")
+        staking_id = ""
+
+        if isinstance(staking_value, str) and ":" in staking_value:
+            _, staking_suffix = staking_value.split(":", 1)
+            staking_id = staking_suffix.strip()
+
+        post["staking_label"] = staking_value or "NO_STAKING_LINK"
+        post["staking_id"] = staking_id
+
+        if not first_staking_id and staking_id:
+            first_staking_id = staking_id
+
+    return render_template("dashboard.html", user=user, posts=user_posts, first_staking_id=first_staking_id)
 
 
 @app.route("/logout")
