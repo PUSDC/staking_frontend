@@ -89,6 +89,14 @@
                     </div>
 
                     <div class="form-group">
+                        <label class="form-label">CATEGORY_CLASSIFICATION</label>
+                        <select name="category" class="form-control" required>
+                            <option value="jd" {% if post.category == 'jd' %}selected{% endif %}>JD</option>
+                            <option value="resume" {% if post.category == 'resume' %}selected{% endif %}>RESUME</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label class="form-label">DATA_BLOCK_MODIFICATION</label>
                         <textarea name="content" class="form-control" required>{{ post.content }}</textarea>
                     </div>

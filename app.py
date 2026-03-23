@@ -1,6 +1,8 @@
 import os
+import json
 import logging
 import time
+import requests
 import markdown
 from flask import Flask, redirect, request, render_template, session, url_for, jsonify
 from supabase import create_client, Client
@@ -8,6 +10,57 @@ from supabase.lib.client_options import SyncClientOptions
 from dotenv import load_dotenv
 
 MESSAGE_TTL = 300  # 5 minutes
+
+BASE_RPC_URL = "https://mainnet.base.org"
+STAKING_ADDR = "0x6623Af17C813252CDBE29d062817fd27Bd865c35"
+
+def get_event_topic(event_signature):
+    from web3 import Web3
+    return Web3.keccak(text=event_signature).hex()
+
+DEPOSIT_EVENT_TOPIC = get_event_topic("Deposited(address,uint256,uint256)")
+
+def verify_staking_tx_and_get_id(tx_hash, user_address):
+    try:
+        response = requests.post(BASE_RPC_URL, json={
+            "jsonrpc": "2.0",
+            "method": "eth_getTransactionReceipt",
+            "params": [tx_hash],
+            "id": 1
+        }, timeout=10)
+        
+        if response.status_code != 200:
+            return None, "RPC request failed"
+        
+        data = response.json()
+        if "result" not in data or not data["result"]:
+            return None, "TX not found or pending"
+        
+        receipt = data["result"]
+        if receipt.get("status") != "0x1":
+            return None, "TX failed on chain"
+        
+        logs = receipt.get("logs", [])
+        staking_id = None
+        user_address_lower = user_address.lower().replace("0x", "")
+        
+        for log in logs:
+            if log.get("address", "").lower() == STAKING_ADDR.lower():
+                topics = log.get("topics", [])
+                data = log.get("data", "")
+                if len(topics) == 2 and topics[0].replace("0x", "") == DEPOSIT_EVENT_TOPIC.replace("0x", ""):
+                    # indexed_user = topics[1]
+                    # if indexed_user.lower().endswith(user_address_lower):
+                    staking_id = str(int(data[2:66], 16))
+                    break
+        
+        if not staking_id:
+            return None, "No valid Deposit event found"
+        
+        return staking_id, None
+    except Exception as e:
+        logger.error(f"Error verifying staking tx: {str(e)}")
+        return None, str(e)
 
 
 def refresh_wallet_session():
@@ -19,7 +72,6 @@ def refresh_wallet_session():
         response = supabase.table("wallets").select("*").eq("wallet_address", user["address"].lower()).limit(1).execute()
         if response.data:
             wallet = response.data[0]
-            user["is_staked"] = wallet.get("is_staked", False)
             user["created_at"] = wallet.get("created_at", user.get("created_at"))
             session["user"] = user
     except Exception as e:
@@ -121,7 +173,6 @@ def verify_wallet():
             "address": user["wallet_address"],
             "name": f"{user['wallet_address'][:6]}...{user['wallet_address'][-4:]}",
             "login_type": "wallet",
-            "is_staked": user.get("is_staked", False),
             "created_at": user.get("created_at")
         }
         
@@ -131,7 +182,6 @@ def verify_wallet():
             "user": {
                 "address": user["wallet_address"],
                 "created_at": user.get("created_at"),
-                "is_staked": user.get("is_staked", False)
             }
         })
     except Exception as e:
@@ -143,8 +193,6 @@ def make_post_live(post_id):
     user = session.get("user")
     if not user or user.get("login_type") != "wallet":
         return jsonify({"error": "Unauthorized"}), 403
-    if not user.get("is_staked"):
-        return jsonify({"error": "STAKING_REQUIRED"}), 402
 
     if supabase:
         try:
@@ -174,56 +222,6 @@ def stake():
         return redirect(url_for("index"))
     
     return render_template("stake.html", user=user)
-
-
-@app.route("/api/staking/activate", methods=["POST"])
-def activate_staking():
-    user = session.get("user")
-    if not user or user.get("login_type") != "wallet":
-        return jsonify({"error": "Unauthorized"}), 403
-
-    data = request.get_json(silent=True) or {}
-    tx_hash = (data.get("txHash") or "").strip()
-    if not tx_hash:
-        return jsonify({"error": "Missing txHash"}), 400
-
-    if not supabase:
-        user["is_staked"] = True
-        session["user"] = user
-        return jsonify({"success": True})
-
-    try:
-        supabase.table("wallets").update({"is_staked": True}).eq("wallet_address", user["address"].lower()).execute()
-        user["is_staked"] = True
-        session["user"] = user
-        return jsonify({"success": True})
-    except Exception as e:
-        logger.error(f"Failed to activate staking state for {user.get('address')}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route("/api/staking/deactivate", methods=["POST"])
-def deactivate_staking():
-    user = session.get("user")
-    if not user or user.get("login_type") != "wallet":
-        return jsonify({"error": "Unauthorized"}), 403
-
-    data = request.get_json(silent=True) or {}
-    tx_hash = (data.get("txHash") or "").strip()
-    if not tx_hash:
-        return jsonify({"error": "Missing txHash"}), 400
-
-    if supabase:
-        try:
-            supabase.table("wallets").update({"is_staked": False}).eq("wallet_address", user["address"].lower()).execute()
-            supabase.table("staking_posts").update({"live": False}).eq("user", user["id"]).execute()
-        except Exception as e:
-            logger.error(f"Failed to deactivate staking state for {user.get('address')}: {str(e)}")
-            return jsonify({"error": str(e)}), 500
-
-    user["is_staked"] = False
-    session["user"] = user
-    return jsonify({"success": True})
 
 
 @app.route("/post/<int:post_id>/edit", methods=["GET", "POST"])
@@ -262,7 +260,7 @@ def edit_post(post_id):
         if supabase:
             try:
                 supabase.table("staking_posts") \
-                    .update({"title": title, "content": content}) \
+                    .update({"title": title, "content": content, "category": request.form.get("category")}) \
                     .eq("id", post_id) \
                     .execute()
                 return redirect(url_for("post_detail", post_id=post_id))
@@ -275,45 +273,46 @@ def edit_post(post_id):
     return render_template("edit_post.html", user=user, post=post)
 
 
-@app.route("/post/new", methods=["GET", "POST"])
-def new_post():
+@app.route("/api/create_post", methods=["GET", "POST"])
+def create_post():
     user = session.get("user")
     if not user:
-        return redirect(url_for("index"))
+        return jsonify({"error": "Unauthorized"}), 403
     
-    # Requirement: only wallet users can post
     if user.get("login_type") != "wallet":
-        return redirect(url_for("index"))
+        return jsonify({"error": "Unauthorized"}), 403
+    print(1)
+
+    tx_hash = request.args.get("tx_hash") or \
+              request.form.get("tx_hash") or \
+              (request.get_json(silent=True) or {}).get("tx_hash")
+              
+    if not tx_hash:
+        return jsonify({"error": "Missing tx_hash"}), 400
+    print(2)
+
+    staking_id, error = verify_staking_tx_and_get_id(tx_hash, user.get("address"))
+    if not staking_id:
+        return jsonify({"error": error or "Could not verify staking transaction"}), 400
+    print(3)
+    print(f"Staking ID: {staking_id}")
     
-    if not user.get("is_staked"):
-        return redirect(url_for("stake"))
-
-            
-    if request.method == "POST":
-        title = request.form.get("title")
-        content = request.form.get("content")
-        
-        if not title or not content:
-            return "Missing title or content", 400
-            
-        if supabase:
-            try:
-                supabase.table("staking_posts").insert({
-                    "title": title,
-                    "content": content,
-                    "user": user.get("id"),
-                    "author_id": user.get("id"),
-                    "author_name": user.get("name"),
-                    "live": True
-                }).execute()
-                return redirect(url_for("index"))
-            except Exception as e:
-                logger.error(f"Error creating post: {str(e)}")
-                return f"Error: {str(e)}", 500
-        
-        return redirect(url_for("index"))
-
-    return render_template("create_post.html", user=user)
+    staking_label = f"base:{staking_id}"
+    post_data = {
+        "user": user.get("id"),
+        "staking": staking_label
+    }
+    
+    if supabase:
+        try:
+            response = supabase.table("staking_posts").insert(post_data).execute()
+            if response.data:
+                new_post_id = response.data[0]["id"]
+                return jsonify({"success": True, "post_id": new_post_id})
+            return jsonify({"error": "Failed to create post"}), 500
+        except Exception as e:
+            logger.error(f"Error creating post: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
 
 @app.route("/")
@@ -333,15 +332,18 @@ def index():
     page = request.args.get("page", 1, type=int)
     page_size = 10
     offset = (page - 1) * page_size
+    category = request.args.get("category")
     
     posts = []
     if supabase:
         try:
-            # Execute the specified query with limit and calculated offset
-            response = supabase.table("staking_posts") \
+            query = supabase.table("staking_posts") \
                 .select("*") \
                 .eq("live", True) \
-                .eq("delete", False) \
+                .eq("delete", False)
+            if category:
+                query = query.eq("category", category)
+            response = query \
                 .order("id", desc=True) \
                 .limit(page_size) \
                 .offset(offset) \
@@ -350,7 +352,7 @@ def index():
         except Exception as e:
             logger.error(f"Error fetching posts: {str(e)}")
             
-    return render_template("index.html", user=user, posts=posts, page=page)
+    return render_template("index.html", user=user, posts=posts, page=page, category=category)
 
 @app.route("/post/<int:post_id>")
 def post_detail(post_id):
@@ -445,8 +447,8 @@ def auth_callback():
         logger.error(f"Failed to exchange code for session: {str(e)}")
         return f"Authentication failed during session exchange: {str(e)}", 401
 
-@app.route("/dashboard")
-def dashboard():
+@app.route("/my_posts")
+def my_posts():
     user = session.get("user")
     if not user or "id" not in user or "login_type" not in user:
         session.pop("user", None)

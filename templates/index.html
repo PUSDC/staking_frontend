@@ -22,8 +22,8 @@
                     <li><a class="menu-item" href="#" onclick="loginWithMetaMask()">POST</a></li>
                     {% else %}
                     {% if user.login_type == 'wallet' %}
-                    <li><a class="menu-item" href="{{ url_for('new_post' if user.is_staked else 'stake') }}"
-                            style="background: var(--terminal-green); color: var(--terminal-black) !important; padding: 2px 10px; font-weight: bold;">{{ 'NEW_REQUEST+' if user.is_staked else 'MAKE_COMMITMENT+' }}</a>
+                    <li><a class="menu-item" href="{{ url_for('stake') }}"
+                            style="background: var(--terminal-green); color: var(--terminal-black) !important; padding: 2px 10px; font-weight: bold;">NEW_REQUEST+</a>
                     </li>
 
                     {% else %}
@@ -33,7 +33,7 @@
                         <div class="terminal-tooltip">WALLET_REQUIRED // COMMITMENT_MECHANISM: FULLY_REFUNDABLE</div>
                     </li>
                     {% endif %}
-                    <li><a class="menu-item" href="{{ url_for('dashboard') }}">MY_POSTS</a></li>
+                    <li><a class="menu-item" href="{{ url_for('my_posts') }}">MY_POSTS</a></li>
                     <li><a class="menu-item" href="{{ url_for('logout') }}" style="color: #f00;">LOGOUT</a></li>
                     {% endif %}
 
@@ -43,21 +43,39 @@
         </header>
 
         <section>
-            <h1
-                style="color: var(--terminal-green); text-transform: uppercase; font-weight: 800; border-bottom: 2px solid var(--terminal-green); display: inline-block; margin-bottom: 30px;">
-                ACTIVE_REQUESTS // SELF_CLEANING_PROTOCOL</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1
+                    style="color: var(--terminal-green); text-transform: uppercase; font-weight: 800; border-bottom: 2px solid var(--terminal-green); display: inline-block; margin: 0;">
+                    ACTIVE_REQUESTS // SELF_CLEANING_PROTOCOL</h1>
+                <div style="display: flex; gap: 10px;">
+                    <a href="{{ url_for('index') }}"
+                        class="terminal-button {% if not request.args.get('category') %}active{% endif %}"
+                        style="padding: 5px 15px; font-size: 0.8rem;">ALL</a>
+                    <a href="{{ url_for('index', category='jd') }}"
+                        class="terminal-button {% if request.args.get('category') == 'jd' %}active{% endif %}"
+                        style="padding: 5px 15px; font-size: 0.8rem;">JD</a>
+                    <a href="{{ url_for('index', category='resume') }}"
+                        class="terminal-button {% if request.args.get('category') == 'resume' %}active{% endif %}"
+                        style="padding: 5px 15px; font-size: 0.8rem;">RESUME</a>
+                </div>
+            </div>
 
             <div class="terminal-card">
                 <header>ALL_REQUESTS // AUTO_EXPIRE_WHEN_COMPLETED</header>
                 <div class="post-list">
                     {% if posts %}
                     {% for post in posts %}
-                    <a href="{{ url_for('post_detail', post_id=post.id) }}" style="text-decoration: none; color: inherit; display: block;">
+                    <a href="{{ url_for('post_detail', post_id=post.id) }}"
+                        style="text-decoration: none; color: inherit; display: block;">
                         <div class="post-item">
                             <span class="label">ENTRY_{{ post.id }}</span>
+                            <span class="label"
+                                style="background: var(--terminal-green); color: var(--terminal-black);">{{
+                                post.category|upper if post.category else 'GENERAL' }}</span>
                             <h3><span style="border-bottom: 1px solid transparent;"
                                     onmouseover="this.style.borderBottom='1px solid var(--terminal-green)'"
-                                    onmouseout="this.style.borderBottom='1px solid transparent'">{{ post.title or '[UNTITLED_TRANSMISSION]' }}</span></h3>
+                                    onmouseout="this.style.borderBottom='1px solid transparent'">{{ post.title or
+                                    '[UNTITLED_TRANSMISSION]' }}</span></h3>
                             <div class="muted">TIMESTAMP: {{ post.created_at }}</div>
                         </div>
                     </a>
@@ -70,7 +88,7 @@
                 <div class="terminal-nav"
                     style="border-top: 1px solid #0f0; border-bottom: none; margin-bottom: 0; padding: 20px; display: flex; justify-content: center; gap: 20px;">
                     {% if page > 1 %}
-                    <a href="{{ url_for('index', page=page-1) }}" class="terminal-button">
+                    <a href="{{ url_for('index', page=page-1, category=category) }}" class="terminal-button">
                         << PREV_PAGE</a>
                             {% else %}
                             <span class="terminal-button disabled" style="opacity: 0.3; cursor: not-allowed;">
@@ -81,7 +99,8 @@
                                         }}</span>
 
                                     {% if posts|length == 10 %}
-                                    <a href="{{ url_for('index', page=page+1) }}" class="terminal-button">NEXT_PAGE
+                                    <a href="{{ url_for('index', page=page+1, category=category) }}"
+                                        class="terminal-button">NEXT_PAGE
                                         >></a>
                                     {% else %}
                                     <span class="terminal-button disabled"
@@ -94,24 +113,26 @@
             <div
                 style="margin-top: 40px; border: 1px dashed #0f0; padding: 30px; text-align: center; background: rgba(0, 255, 0, 0.05);">
                 <h2 style="margin-top: 0;">AI_ERA_INFO_OVERLOAD_SOLUTION</h2>
-                <p class="muted">To prevent information explosion, posts require a refundable commitment. When your need is met, withdraw — your post expires automatically.</p>
+                <p class="muted">To prevent information explosion, posts require a refundable commitment. When your need
+                    is met, withdraw — your post expires automatically.</p>
                 <div style="display: flex; flex-direction: column; gap: 15px; max-width: 400px; margin: 30px auto;">
                     <a href="{{ url_for('login_twitter') }}" class="terminal-button">BROWSE (TWITTER_LOGIN)</a>
-                    <button id="metamask-btn" class="terminal-button" onclick="loginWithMetaMask()">POST (WALLET_COMMITMENT)</button>
+                    <button id="metamask-btn" class="terminal-button" onclick="loginWithMetaMask()">POST
+                        (WALLET_COMMITMENT)</button>
                 </div>
             </div>
-            </div>
-            {% else %}
-            <div class="terminal-alert terminal-alert-primary" style="margin-top: 40px;">
-                SESSION_ACTIVE: {{ user.name }} // AUTH: {{ user.login_type.upper() }}
-            </div>
-            {% endif %}
-        </section>
+    </div>
+    {% else %}
+    <div class="terminal-alert terminal-alert-primary" style="margin-top: 40px;">
+        SESSION_ACTIVE: {{ user.name }} // AUTH: {{ user.login_type.upper() }}
+    </div>
+    {% endif %}
+    </section>
 
-        <footer
-            style="margin-top: 100px; border-top: 1px solid #0f0; padding-top: 20px; font-size: 0.8rem; text-align: center; opacity: 0.5;">
-            &copy; 2026 STAKING_BBS // SELF_CLEANING_PROTOCOL // NO_MODERATION_NEEDED
-        </footer>
+    <footer
+        style="margin-top: 100px; border-top: 1px solid #0f0; padding-top: 20px; font-size: 0.8rem; text-align: center; opacity: 0.5;">
+        &copy; 2026 STAKING_BBS // SELF_CLEANING_PROTOCOL // NO_MODERATION_NEEDED
+    </footer>
     </div>
 
     <script>

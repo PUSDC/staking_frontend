@@ -18,8 +18,8 @@
             <nav class="terminal-menu">
                 <ul>
                     {% if user.login_type == 'wallet' %}
-                    <li><a class="menu-item" href="{{ url_for('new_post' if user.is_staked else 'stake') }}"
-                            style="background: var(--terminal-green); color: var(--terminal-black) !important; padding: 2px 10px; font-weight: bold;">{{ 'NEW_REQUEST+' if user.is_staked else 'MAKE_COMMITMENT+' }}</a>
+                    <li><a class="menu-item" href="{{ url_for('stake') }}"
+                            style="background: var(--terminal-green); color: var(--terminal-black) !important; padding: 2px 10px; font-weight: bold;">NEW_REQUEST+</a>
                     </li>
                     {% else %}
                     <li style="position: relative;" class="has-tooltip">
@@ -57,34 +57,6 @@
                 </ul>
             </div>
 
-            {% if user.login_type == 'wallet' %}
-            <div class="terminal-card" style="margin-top: 40px; border-color: #ff0 !important;">
-                <header style="background: #ff0 !important; color: #000 !important;">COMMITMENT_RESERVE // MONITOR</header>
-                <div style="padding: 20px;">
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <div>
-                            <span class="label" style="background: #ff0;">STATUS:</span>
-                            {% if user.is_staked %}
-                            <span id="active-reserve-text" style="color: #ff0; font-weight: bold;">COMMITMENT_ACTIVE (ON-CHAIN CHECK PENDING...)</span>
-                            {% else %}
-                            <span style="opacity: 0.5;">NO_ACTIVE_COMMITMENT // STAKE_TO_POST</span>
-                            {% endif %}
-                        </div>
-                        {% if user.is_staked %}
-                        <button onclick="withdrawReserve('{{ first_staking_id }}')" class="terminal-button"
-                            {% if not first_staking_id %}disabled{% endif %}
-                            title="{% if not first_staking_id %}No staking id is linked to this account yet.{% endif %}"
-                            style="border-color: #f00 !important; color: #f00 !important; padding: 5px 15px; font-size: 0.9rem;">COMPLETE & WITHDRAW</button>
-                        {% else %}
-                        <a href="{{ url_for('stake') }}" class="terminal-button"
-                            style="padding: 5px 15px; font-size: 0.9rem;">MAKE_COMMITMENT</a>
-                        {% endif %}
-                    </div>
-                    <p class="muted" style="font-size: 0.8rem; margin: 0;">[!] NOTE: Withdrawing completes your commitment — all associated posts will EXPIRE immediately.</p>
-                </div>
-            </div>
-            {% endif %}
             <div class="terminal-card" style="margin-top: 40px;">
                 <header>MY_POSTS // COMMITMENT_STATUS</header>
                 <div class="post-list">
@@ -100,6 +72,9 @@
                             <div class="post-item" style="border-bottom: none; padding: 1.5rem 0 1.5rem 20px;">
                                 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                                     <span class="label">ENTRY_{{ post.id }}</span>
+                                    <span class="label"
+                                        style="background: var(--terminal-green); color: var(--terminal-black);">{{
+                                        post.category|upper if post.category else 'GENERAL' }}</span>
                                     <span class="label"
                                         style="background: rgba(57, 255, 20, 0.1); color: var(--terminal-green); border: 1px solid rgba(57,255,20,0.3);">
                                         {{ post.staking_label }}</span>
@@ -124,8 +99,7 @@
 
                         <div style="display: flex; gap: 10px; padding: 0 20px;">
                             <button onclick="withdrawReserve('{{ post.staking_id }}')"
-                                class=" terminal-button tooltip-trigger"
-                                {% if not post.staking_id %}disabled{% endif %}
+                                class=" terminal-button tooltip-trigger" {% if not post.staking_id %}disabled{% endif %}
                                 style="border-color: #f00 !important; color: #f00 !important; padding: 4px 12px; font-size: 0.7rem; white-space: nowrap;">
                                 COMPLETE & EXPIRE
                             </button>
@@ -146,7 +120,8 @@
 
             <div style="margin-top: 40px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start;">
                 {% if user.login_type == 'wallet' %}
-                <a href="{{ url_for('new_post' if user.is_staked else 'stake') }}" class="terminal-button" style="display: inline-block;">{{ 'POST_NEW_REQUEST' if user.is_staked else 'MAKE_COMMITMENT' }}</a>
+                <a href="{{ url_for('stake') }}" class="terminal-button"
+                    style="display: inline-block;">POST_NEW_REQUEST</a>
                 {% else %}
                 <div style="position: relative;" class="has-tooltip">
                     <button class="terminal-button"
