@@ -21,7 +21,7 @@ def get_event_topic(event_signature):
 
 DEPOSIT_EVENT_TOPIC = get_event_topic("Deposited(address,uint256,uint256)")
 
-def verify_staking_tx_and_get_id(tx_hash, user_address):
+def verify_staking_tx_and_get_id(tx_hash):
     try:
         response = requests.post(BASE_RPC_URL, json={
             "jsonrpc": "2.0",
@@ -31,37 +31,36 @@ def verify_staking_tx_and_get_id(tx_hash, user_address):
         }, timeout=10)
         
         if response.status_code != 200:
-            return None, "RPC request failed"
+            return None, None, None, "RPC request failed"
         
         data = response.json()
         if "result" not in data or not data["result"]:
-            return None, "TX not found or pending"
+            return None, None, None, "TX not found or pending"
         
         receipt = data["result"]
         if receipt.get("status") != "0x1":
-            return None, "TX failed on chain"
+            return None, None, None, "TX failed on chain"
         
         logs = receipt.get("logs", [])
         staking_id = None
-        user_address_lower = user_address.lower().replace("0x", "")
         
         for log in logs:
             if log.get("address", "").lower() == STAKING_ADDR.lower():
                 topics = log.get("topics", [])
                 data = log.get("data", "")
                 if len(topics) == 2 and topics[0].replace("0x", "") == DEPOSIT_EVENT_TOPIC.replace("0x", ""):
-                    # indexed_user = topics[1]
-                    # if indexed_user.lower().endswith(user_address_lower):
+                    indexed_address = '0x'+topics[1][-40:].lower()
                     staking_id = str(int(data[2:66], 16))
+                    amount = str(int(data[66:130], 16))
                     break
         
         if not staking_id:
-            return None, "No valid Deposit event found"
+            return None, None, None, "No valid Deposit event found"
         
-        return staking_id, None
+        return indexed_address, staking_id, amount, None
     except Exception as e:
         logger.error(f"Error verifying staking tx: {str(e)}")
-        return None, str(e)
+        return None, None, None, str(e)
 
 
 # def refresh_wallet_session():
@@ -149,8 +148,6 @@ def reset_supabase_auth():
     """
     if supabase and SUPABASE_KEY:
         supabase.postgrest.auth(SUPABASE_KEY)
-    # refresh_wallet_session()
-
 
 
 @app.route("/api/auth/wallet/verify", methods=["POST"])
@@ -276,13 +273,6 @@ def edit_post(post_id):
 
 @app.route("/api/create_post", methods=["POST"])
 def create_post():
-    user = session.get("user")
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 403
-    
-    if user.get("login_type") != "wallet":
-        return jsonify({"error": "Unauthorized"}), 403
-
     tx_hash = request.args.get("tx_hash") or \
               request.form.get("tx_hash") or \
               (request.get_json(silent=True) or {}).get("tx_hash")
@@ -290,42 +280,78 @@ def create_post():
     if not tx_hash:
         return jsonify({"error": "Missing tx_hash"}), 400
 
-    staking_id, error = verify_staking_tx_and_get_id(tx_hash, user.get("address"))
+    indexed_address, staking_id, amount, error = verify_staking_tx_and_get_id(tx_hash)
+    # print(f"User: {user}")
+    # print(f"Indexed User: {indexed_address}")
     if not staking_id:
         return jsonify({"error": error or "Could not verify staking transaction"}), 400
-    print(f"Staking ID: {staking_id}")
-    
+
+    user, is_new = get_or_create_user(indexed_address)
+    # print(f"User: {user}")
+    # print(f"Staking ID: {staking_id}")
     staking_label = f"base:{staking_id}"
     
     # Check for existing post with this staking_label
-    try:
-        existing = supabase.table("staking_posts") \
-            .select("id") \
-            .eq("staking", staking_label) \
-            .execute()
-        
-        if existing.data:
-            return jsonify({"success": True, "post_id": existing.data[0]["id"]})
-    except Exception as e:
-        logger.error(f"Error checking existing post: {str(e)}")
+    # try:
+    existing = supabase.table("staking_posts") \
+        .select("id") \
+        .eq("staking", staking_label) \
+        .execute()
+    
+    if existing.data:
+        return jsonify({"success": True, "post_id": existing.data[0]["id"]})
+    # except Exception as e:
+    #     logger.error(f"Error checking existing post: {str(e)}")
 
     post_data = {
-        "user": user.get("id"),
-        "staking": staking_label
+        "user": user.get("user_id"),
+        "staking": staking_label,
+        "value": amount
     }
 
     new_post_id = None
-    try:
-        response = supabase.table("staking_posts").insert(post_data).execute()
-        if response.data:
+    # try:
+    response = supabase.table("staking_posts").insert(post_data).execute()
+    if response.data:
 
-            new_post_id = response.data[0]["id"]
-            return jsonify({"success": True, "post_id": new_post_id})
-    except Exception as e:
-        logger.error(f"Error creating post: {str(e)}")
+        new_post_id = response.data[0]["id"]
+        return jsonify({"success": True, "post_id": new_post_id})
+    # except Exception as e:
+    #     logger.error(f"Error creating post: {str(e)}")
+
+@app.route("/api/deactivate_post", methods=["POST"])
+def deactivate_post():
+    tx_hash = request.args.get("tx_hash") or \
+              request.form.get("tx_hash") or \
+              (request.get_json(silent=True) or {}).get("tx_hash")
+              
+    if not tx_hash:
+        return jsonify({"error": "Missing tx_hash"}), 400
+
+    indexed_user, staking_id, amount, error = verify_staking_tx_and_get_id(tx_hash)
+    # print(f"User: {user}")
+    print(f"Indexed User: {indexed_user}")
+    # assert user == indexed_user
+    if not staking_id:
+        return jsonify({"error": error or "Could not verify staking transaction"}), 400
+    
+    # print(f"Staking ID: {staking_id}")
+    staking_label = f"base:{staking_id}"
+    # try:
+    response = supabase.table("staking_posts").update({"delete": True}).eq("staking", staking_label).execute()
+    if response.data:
+        return jsonify({"success": True})
+    # except Exception as e:
+    #     logger.error(f"Error creating post: {str(e)}")
+
 
 @app.route("/")
 def index():
+    return redirect(url_for("category", category="jd"))
+
+@app.route("/<category>")
+@app.route("/<category>/<int:page>")
+def category(category, page = 1):
     user = session.get("user")
     
     if user:
@@ -338,10 +364,8 @@ def index():
 
         
     # Pagination logic
-    page = request.args.get("page", 1, type=int)
     page_size = 10
     offset = (page - 1) * page_size
-    category = request.args.get("category")
     
     posts = []
     if supabase:

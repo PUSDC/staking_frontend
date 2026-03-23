@@ -83,7 +83,7 @@
                                         style="background: var(--terminal-green); color: var(--terminal-black); font-size: 0.7rem;">ACTIVE</span>
                                     {% else %}
                                     <span class="label"
-                                        style="background: #555; color: #fff; font-size: 0.7rem; opacity: 0.5;">EXPIRED</span>
+                                        style="background: #555; color: #fff; font-size: 0.7rem; opacity: 0.5;">OFFLINE</span>
                                     {% endif %}
                                 </div>
                                 <h3 style="margin: 0 !important; font-size: 1.4rem;">
@@ -251,10 +251,10 @@
         };
 
         const syncWithdrawalState = async (txHash) => {
-            const response = await fetch('/api/staking/deactivate', {
+            const response = await fetch('/api/deactivate_post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ txHash }),
+                body: JSON.stringify({ tx_hash: txHash }),
             });
 
             const result = await response.json();
