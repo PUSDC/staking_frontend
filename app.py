@@ -2,12 +2,14 @@ import os
 import json
 import logging
 import time
+
 import requests
 import markdown
+from dotenv import load_dotenv
 from flask import Flask, redirect, request, render_template, session, url_for, jsonify
 from supabase import create_client, Client
 from supabase.lib.client_options import SyncClientOptions
-from dotenv import load_dotenv
+from eth_hash.auto import keccak
 
 MESSAGE_TTL = 300  # 5 minutes
 
@@ -15,8 +17,7 @@ BASE_RPC_URL = "https://mainnet.base.org"
 STAKING_ADDR = "0x6623Af17C813252CDBE29d062817fd27Bd865c35"
 
 def get_event_topic(event_signature):
-    from web3 import Web3
-    return Web3.keccak(text=event_signature).hex()
+    return keccak(event_signature.encode('utf-8')).hex()
 
 DEPOSIT_EVENT_TOPIC = get_event_topic("Deposited(address,uint256,uint256)")
 
