@@ -3,4 +3,4 @@ supabase
 python-dotenv
 requests
 markdown
-eth-hash
+eth-hash[pycryptodome]
