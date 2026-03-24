@@ -7,6 +7,16 @@
     <title>TERMINAL-BBS // ENTRY_{{ post.id }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6,
+        .markdown-content strong {
+            color: var(--terminal-green);
+        }
+
         .markdown-content pre {
             background: #111;
             padding: 15px;
@@ -45,12 +55,10 @@
             </div>
             <nav class="terminal-menu">
                 <ul>
-                    <li><a class="menu-item" href="/"
-                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">BOARD_FEED</a>
+                    <li><a class="menu-item" href="/">BOARD_FEED</a>
                     </li>
                     {% if user %}
-                    <li><a class="menu-item" href="{{ url_for('my_posts') }}"
-                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">MY_POSTS</a>
+                    <li><a class="menu-item" href="{{ url_for('my_posts') }}">MY_POSTS</a>
                     </li>
                     {% endif %}
                 </ul>

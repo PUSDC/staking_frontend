@@ -6,7 +6,7 @@ import time
 import requests
 import markdown
 from dotenv import load_dotenv
-from flask import Flask, redirect, request, render_template, session, url_for, jsonify
+from flask import Flask, redirect, request, render_template, session, url_for, jsonify, Response
 from supabase import create_client, Client
 from supabase.lib.client_options import SyncClientOptions
 from eth_hash.auto import keccak
@@ -387,6 +387,78 @@ def category(category, page = 1):
             
     return render_template("index.html", user=user, posts=posts, page=page, category=category)
 
+
+@app.route("/<category>.md")
+@app.route("/<category>.md/<int:page>")
+def category_md(category, page = 1):
+    user = session.get("user")
+    
+    if user:
+        if "login_type" not in user or "id" not in user:
+            session.pop("user", None)
+            user = None
+        elif user.get("login_type") == "wallet" and "address" not in user:
+            session.pop("user", None)
+            user = None
+
+        
+    # Pagination logic
+    page_size = 10
+    offset = (page - 1) * page_size
+    
+    posts = []
+    if supabase:
+        try:
+            query = supabase.table("staking_posts") \
+                .select("*") \
+                .eq("live", True) \
+                .eq("delete", False)
+            if category:
+                query = query.eq("category", category)
+            response = query \
+                .order("id", desc=True) \
+                .limit(page_size) \
+                .offset(offset) \
+                .execute()
+            posts = response.data
+        except Exception as e:
+            logger.error(f"Error fetching posts: {str(e)}")
+
+    md_content = f"### {category.upper()}_TRANSMISSIONS // PAGE_{page}\n\n"
+    
+    if not posts:
+        md_content += "> [!] EMPTY_STREAM: NO_DATA_PACKETS_DETECTED.\n"
+    else:
+        for post in posts:
+            pid = post['id']
+            pcat = (post.get('category') or 'GENERAL').upper()
+            ptitle = post.get('title') or '[UNTITLED_TRANSMISSION]'
+            pdate = post.get('created_at', 'N/A')
+            purl = url_for('post_detail_md', post_id=pid, _external=True)
+            
+            md_content += f"#### ENTRY_{pid} // {pcat}\n"
+            md_content += f"**TITLE**: {ptitle}\n"
+            md_content += f"- TIMESTAMP: {pdate}\n"
+            md_content += f"- DECRYPT: [READ_ENTRY]({purl})\n\n"
+            md_content += "---\n\n"
+            
+    # Navigation
+    nav = ""
+    if page > 1:
+        prev_url = url_for('category_md', category=category, page=page-1, _external=True)
+        nav += f"[<< PREV_PAGE]({prev_url}) "
+    if len(posts) == page_size:
+        next_url = url_for('category_md', category=category, page=page+1, _external=True)
+        nav += f"[NEXT_PAGE >>]({next_url})"
+    
+    if nav:
+        md_content += f"\n{nav}\n"
+        
+    md_content += f"\n\n---\n&copy; 2026 STAKING_BBS // SELF_CLEANING_PROTOCOL"
+
+    return Response(md_content, mimetype='text/markdown')
+
+
 @app.route("/post/<int:post_id>")
 def post_detail(post_id):
     user = session.get("user")
@@ -411,6 +483,44 @@ def post_detail(post_id):
         return "DECRYPT_ERROR: DATA_PACKET_NOT_FOUND", 404
         
     return render_template("post_detail.html", user=user, post=post)
+
+
+
+@app.route("/post/<int:post_id>.md")
+def post_detail_md(post_id):
+    user = session.get("user")
+    post = None
+    if supabase:
+        try:
+            response = supabase.table("staking_posts") \
+                .select("*") \
+                .eq("delete", False) \
+                .eq("id", post_id) \
+                .single() \
+                .execute()
+            post = response.data
+            
+            # Render markdown
+            if post and post.get("content"):
+                post["html_content"] = markdown.markdown(post["content"], extensions=['fenced_code', 'tables'])
+        except Exception as e:
+            logger.error(f"Error fetching post {post_id}: {str(e)}")
+            
+    if not post:
+        return "DECRYPT_ERROR: DATA_PACKET_NOT_FOUND", 404
+        
+    md_content = f"# {post.get('title') or '[UNTITLED_TRANSMISSION]'}\n\n"
+    md_content += f"- **ID**: {post['id']}\n"
+    md_content += f"- **CATEGORY**: {(post.get('category') or 'GENERAL').upper()}\n"
+    md_content += f"- **TIMESTAMP**: {post.get('created_at', 'N/A')}\n"
+    md_content += f"- **STAKING**: {post.get('staking', 'N/A')}\n\n"
+    md_content += "---\n\n"
+    md_content += post.get('content') or "[EMPTY_DATA_PACKET]"
+    
+    md_content += f"\n\n---\n&copy; 2026 STAKING_BBS // SELF_CLEANING_PROTOCOL"
+    
+    return Response(md_content, mimetype='text/markdown')
+
 
 @app.route("/login/twitter")
 def login_twitter():
