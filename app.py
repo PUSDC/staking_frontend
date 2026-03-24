@@ -345,13 +345,13 @@ def deactivate_post():
     #     logger.error(f"Error creating post: {str(e)}")
 
 
-@app.route("/")
-def index():
-    return redirect(url_for("category", category="jd"))
 
+#def index():
+#    return redirect(url_for("category", category="jd"))
+@app.route("/")
 @app.route("/<category>")
 @app.route("/<category>/<int:page>")
-def category(category, page = 1):
+def category(category='jd', page = 1):
     user = session.get("user")
     
     if user:
