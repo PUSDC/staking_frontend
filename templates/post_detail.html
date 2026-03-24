@@ -45,9 +45,13 @@
             </div>
             <nav class="terminal-menu">
                 <ul>
-                    <li><a class="menu-item" href="/">BOARD_FEED</a></li>
+                    <li><a class="menu-item" href="/"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">BOARD_FEED</a>
+                    </li>
                     {% if user %}
-                    <li><a class="menu-item" href="{{ url_for('my_posts') }}">MY_POSTS</a></li>
+                    <li><a class="menu-item" href="{{ url_for('my_posts') }}"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">MY_POSTS</a>
+                    </li>
                     {% endif %}
                 </ul>
             </nav>
@@ -81,7 +85,7 @@
                             post.category|upper if post.category else 'GENERAL' }}</span>
                         {% if not post.live %}
                         <span class="label"
-                            style="background: #555; color: #fff; font-size: 0.7rem; border: none; opacity: 0.8;">EXPIRED</span>
+                            style="background: #555; color: #fff; font-size: 0.7rem; border: none; opacity: 0.8;">OFFLINE</span>
                         {% endif %}
                     </div>
 

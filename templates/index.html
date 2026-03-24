@@ -18,8 +18,14 @@
             <nav class="terminal-menu">
                 <ul>
                     {% if not user %}
-                    <li><a class="menu-item" href="{{ url_for('login_twitter') }}">BROWSE</a></li>
-                    <li><a class="menu-item" href="#" onclick="loginWithMetaMask()">POST</a></li>
+                    <li><a class="menu-item" href="{{ url_for('login_twitter') }}"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">HUMAN
+                            LOGIN</a>
+                    </li>
+                    <li><a class="menu-item" href="#" onclick="loginWithMetaMask()"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">WALLET_LOGIN
+                            FOR POST</a>
+                    </li>
                     {% else %}
                     {% if user.login_type == 'wallet' %}
                     <li><a class="menu-item" href="{{ url_for('stake') }}"
@@ -33,8 +39,12 @@
                         <div class="terminal-tooltip">WALLET_REQUIRED // COMMITMENT_MECHANISM: FULLY_REFUNDABLE</div>
                     </li>
                     {% endif %}
-                    <li><a class="menu-item" href="{{ url_for('my_posts') }}">MY_POSTS</a></li>
-                    <li><a class="menu-item" href="{{ url_for('logout') }}" style="color: #f00;">LOGOUT</a></li>
+                    <li><a class="menu-item" href="{{ url_for('my_posts') }}"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">MY_POSTS</a>
+                    </li>
+                    <li><a class="menu-item" href="{{ url_for('logout') }}"
+                            style="color: var(--terminal-green); text-decoration: none; border: 2px solid var(--terminal-green);">LOGOUT</a>
+                    </li>
                     {% endif %}
 
 
