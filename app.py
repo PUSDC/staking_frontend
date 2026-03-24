@@ -217,7 +217,7 @@ def make_post_live(post_id):
 def stake():
     user = session.get("user")
     if not user or user.get("login_type") != "wallet":
-        return redirect(url_for("index"))
+        return redirect(url_for("category", category="jd"))
     
     return render_template("stake.html", user=user)
 
@@ -226,7 +226,7 @@ def stake():
 def edit_post(post_id):
     user = session.get("user")
     if not user:
-        return redirect(url_for("index"))
+        return redirect(url_for("category", category="jd"))
         
     post = None
     if supabase:
@@ -585,7 +585,7 @@ def auth_callback():
         }
         
         logger.info(f"User {session['user']['name']} successfully logged in.")
-        return redirect(url_for("index"))
+        return redirect(url_for("category", category="jd"))
     except Exception as e:
         logger.error(f"Failed to exchange code for session: {str(e)}")
         return f"Authentication failed during session exchange: {str(e)}", 401
@@ -595,7 +595,7 @@ def my_posts():
     user = session.get("user")
     if not user or "id" not in user or "login_type" not in user:
         session.pop("user", None)
-        return redirect(url_for("index"))
+        return redirect(url_for("category", category="jd"))
     
     user_posts = []
     if supabase:
@@ -631,7 +631,7 @@ def my_posts():
 @app.route("/logout")
 def logout():
     session.pop("user", None)
-    return redirect(url_for("index"))
+    return redirect(url_for("category", category="jd"))
 
 if __name__ == "__main__":
     app.run(debug=True, port=3000)

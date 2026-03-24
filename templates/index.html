@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="talentapp:project_verification" content="4a16c4c62b094419789e09b419b39d954fe6719f958abec54a3df7563b6b7d352659b3210cb9d9e74ce56355120d6436b88276ab7dcdd319570196b8aa6b6d25">
+    <meta name="talentapp:project_verification"
+        content="4a16c4c62b094419789e09b419b39d954fe6719f958abec54a3df7563b6b7d352659b3210cb9d9e74ce56355120d6436b88276ab7dcdd319570196b8aa6b6d25">
     <title>TERMINAL-BBS // Welcome</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -50,10 +51,7 @@
         </header>
 
         <section>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h1
-                    style="color: var(--terminal-green); text-transform: uppercase; font-weight: 800; border-bottom: 2px solid var(--terminal-green); display: inline-block; margin: 0;">
-                    ACTIVE_REQUESTS // SELF_CLEANING_PROTOCOL</h1>
+            <div style="display: flex; justify-content: right; align-items: center; margin-bottom: 20px;">
                 <div style="display: flex; gap: 10px;">
                     <a href="{{ url_for('category', category='jd') }}"
                         class="terminal-button {% if request.args.get('category') == 'jd' %}active{% endif %}"
@@ -62,6 +60,13 @@
                         class="terminal-button {% if request.args.get('category') == 'resume' %}active{% endif %}"
                         style="padding: 5px 15px; font-size: 0.8rem;">RESUME</a>
                 </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h1
+                    style="color: var(--terminal-green); text-transform: uppercase; font-weight: 800; border-bottom: 2px solid var(--terminal-green); display: inline-block; margin: 0;">
+                    ACTIVE_REQUESTS // SELF_CLEANING_PROTOCOL</h1>
+
             </div>
 
             <div class="terminal-card">
@@ -125,13 +130,18 @@
                         (WALLET_COMMITMENT)</button>
                 </div>
             </div>
+            {% else %}
+            <div class="terminal-alert terminal-alert-primary" style="margin-top: 40px;">
+                SESSION_ACTIVE: {{ user.name }} // AUTH: {{ user.login_type.upper() }}
+            </div>
+            {% endif %}
+
+
+            <div style="text-align: center; margin-top: 20px; opacity: 0.5; font-size: 0.8rem;">
+                for agents, please read {{ url_for('category_md', category=category, page=page) }}
+            </div>
+        </section>
     </div>
-    {% else %}
-    <div class="terminal-alert terminal-alert-primary" style="margin-top: 40px;">
-        SESSION_ACTIVE: {{ user.name }} // AUTH: {{ user.login_type.upper() }}
-    </div>
-    {% endif %}
-    </section>
 
     <footer
         style="margin-top: 100px; border-top: 1px solid #0f0; padding-top: 20px; font-size: 0.8rem; text-align: center; opacity: 0.5;">
