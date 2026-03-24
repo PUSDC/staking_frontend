@@ -370,6 +370,16 @@ def category(category='jd', page = 1):
     posts = []
     if supabase:
         try:
+            if request.path == '/':
+                query = supabase.table("staking_posts") \
+                    .select("*") \
+                    .eq("live", True) \
+                    .eq("delete", False) \
+                    .eq("category", '')
+                response = query \
+                    .execute()
+                posts.extend(response.data)
+
             query = supabase.table("staking_posts") \
                 .select("*") \
                 .eq("live", True) \
@@ -381,7 +391,7 @@ def category(category='jd', page = 1):
                 .limit(page_size) \
                 .offset(offset) \
                 .execute()
-            posts = response.data
+            posts.extend(response.data)
         except Exception as e:
             logger.error(f"Error fetching posts: {str(e)}")
             
