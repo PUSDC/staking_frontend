@@ -258,12 +258,14 @@ def edit_post(post_id):
         return "DECRYPT_ERROR: DATA_PACKET_NOT_FOUND", 404
         
     # Check if the user is the author
-    if user.get("id") != post.get("user") and user.get("id") != post.get("author_id"):
+    if user.get("id") != post.get("user"):
         return "UNAUTHORIZED_ACCESS: KEY_MISMATCH", 403
-        
+
     if request.method == "POST":
         title = request.form.get("title")
         content = request.form.get("content")
+        category = request.form.get("category")
+        live = True if request.form.get("live") == "true" else False
         
         if not title or not content:
             return "Missing title or content", 400
@@ -271,7 +273,7 @@ def edit_post(post_id):
         if supabase:
             try:
                 supabase.table("staking_posts") \
-                    .update({"title": title, "content": content, "category": request.form.get("category")}) \
+                    .update({"title": title, "content": content, "category": category, 'live': live}) \
                     .eq("id", post_id) \
                     .execute()
                 return redirect(url_for("post_detail", post_id=post_id))
