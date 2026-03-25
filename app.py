@@ -10,6 +10,8 @@ from flask import Flask, redirect, request, render_template, session, url_for, j
 from supabase import create_client, Client
 from supabase.lib.client_options import SyncClientOptions
 from eth_hash.auto import keccak
+from eth_account import Account
+from eth_account.messages import encode_defunct
 
 MESSAGE_TTL = 300  # 5 minutes
 
@@ -164,6 +166,17 @@ def verify_wallet():
         return jsonify({"error": "Request expired"}), 401
     
     try:
+        expected_message = f"Commit to the self-cleaning network.\n\nWallet: {address}\nTimestamp: {timestamp}"
+        message = encode_defunct(text=expected_message)
+        
+        try:
+            recovered_address = Account.recover_message(message, signature=signature)
+            if recovered_address.lower() != address.lower():
+                return jsonify({"error": "Invalid signature"}), 401
+        except Exception as e:
+            logger.error(f"Signature recovery error: {str(e)}")
+            return jsonify({"error": "Signature verification failed"}), 400
+
         user, is_new = get_or_create_user(address)
         
         session["user"] = {
@@ -523,7 +536,7 @@ def post_detail_md(post_id):
     md_content += f"- **ID**: {post['id']}\n"
     md_content += f"- **CATEGORY**: {(post.get('category') or 'GENERAL').upper()}\n"
     md_content += f"- **TIMESTAMP**: {post.get('created_at', 'N/A')}\n"
-    md_content += f"- **STAKING**: {post.get('staking', 'N/A')}\n\n"
+    # md_content += f"- **STAKING**: {post.get('staking', 'N/A')}\n\n"
     md_content += "---\n\n"
     md_content += post.get('content') or "[EMPTY_DATA_PACKET]"
     
