@@ -266,14 +266,22 @@ def edit_post(post_id):
         content = request.form.get("content")
         category = request.form.get("category")
         live = True if request.form.get("live") == "true" else False
-        
+
         if not title or not content:
+            if live:
+                supabase.table("staking_posts") \
+                    .update({"live": live}) \
+                    .eq("id", post_id) \
+                    .execute()
             return "Missing title or content", 400
             
         if supabase:
             try:
                 supabase.table("staking_posts") \
-                    .update({"title": title, "content": content, "category": category, 'live': live}) \
+                    .update({
+                        "title": title,
+                        "content": content,
+                        "category": category}) \
                     .eq("id", post_id) \
                     .execute()
                 return redirect(url_for("post_detail", post_id=post_id))
