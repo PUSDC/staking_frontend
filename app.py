@@ -264,7 +264,7 @@ def edit_post(post_id):
     if request.method == "POST":
         title = request.form.get("title")
         content = request.form.get("content")
-        category = request.form.get("category")
+        # category = request.form.get("category")
         live = True if request.form.get("live") or request.form.get("live") == "true" else False
 
         if not title or not content:
@@ -282,7 +282,8 @@ def edit_post(post_id):
                     .update({
                         "title": title,
                         "content": content,
-                        "category": category}) \
+                        # "category": category
+                        }) \
                     .eq("id", post_id) \
                     .execute()
                 return redirect(url_for("post_detail", post_id=post_id))
@@ -300,6 +301,9 @@ def create_post():
     tx_hash = request.args.get("tx_hash") or \
               request.form.get("tx_hash") or \
               (request.get_json(silent=True) or {}).get("tx_hash")
+    category = request.args.get("category") or \
+              request.form.get("category") or \
+              (request.get_json(silent=True) or {}).get("category")
               
     if not tx_hash:
         return jsonify({"error": "Missing tx_hash"}), 400
@@ -314,7 +318,7 @@ def create_post():
     # print(f"User: {user}")
     # print(f"Staking ID: {staking_id}")
     staking_label = f"base:{staking_id}"
-    
+
     # Check for existing post with this staking_label
     # try:
     existing = supabase.table("staking_posts") \
@@ -329,6 +333,7 @@ def create_post():
 
     post_data = {
         "user": user.get("user_id"),
+        "category": category,
         "staking": staking_label,
         "value": amount
     }
@@ -386,7 +391,6 @@ def category(category='jd', page = 1):
             session.pop("user", None)
             user = None
 
-        
     # Pagination logic
     page_size = 10
     offset = (page - 1) * page_size

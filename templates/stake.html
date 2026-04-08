@@ -85,8 +85,10 @@
     <div class="container">
         <header class="terminal-nav">
             <div class="terminal-logo">
-                <div class="logo terminal-prompt"><a href="/" style="color: #0f0; text-decoration: none;">STAKING_BBS
-                        V1.0</a></div>
+                <div class="logo terminal-prompt">
+                    <a href="/" style="color: #0f0; text-decoration: none;">STAKING_BBS
+                        V1.0</a>
+                </div>
             </div>
         </header>
 
@@ -94,7 +96,7 @@
             <div class="staking-container">
                 <div class="step-indicator">
                     <span class="step active">01_STAKE_USDC</span>
-                    <span class="step">02_COMPOSE_POST</span>
+                    <span class="step">02_EDIT_POST</span>
                 </div>
 
                 <h2 class="terminal-prompt"
@@ -108,17 +110,32 @@
                     automatically expire. (MIN_STAKE: <span id="display-amount-inline"
                         style="color: #ff0; font-weight: bold;">...</span> USDC)</p>
 
-                <div class="stake-input-container" style="text-align: center; margin: 30px 0;">
+                <div class="stake-input-container" style="text-align: center; margin: 20px 0;">
                     <span class="label" style="display: block; margin-bottom: 15px; opacity: 0.7;">MAKE_COMMITMENT FOR
                         A NEW POST:</span>
                     <div style="display: inline-flex; align-items: baseline; gap: 10px;">
                         <input type="number" id="stake-input" class="terminal-input" step="0.01" value="10.00"
-                            style="font-size: 3rem; width: 300px; text-align: center; background: rgba(0,255,0,0.05); border: 2px solid var(--terminal-green); color: var(--terminal-green); text-shadow: 0 0 10px var(--terminal-green); font-family: 'Courier New', Courier, monospace; outline: none;">
-                        <span style="font-size: 1.5rem; font-weight: bold;">USDC</span>
+                            style="font-size: 3rem; width: 300px; text-align: center; background: rgba(0,255,0,0.05); border: 2px solid var(--terminal-green); color: var(--terminal-green); text-shadow: 0 0 10px var(--terminal-green); font-family: 'Courier New', Courier, monospace; outline: none; padding: 0;">
                     </div>
+
                     <div id="min-warning" class="muted"
                         style="margin-top: 10px; font-size: 0.7rem; color: #f00; display: none;">ERR:
                         BELOW_MINIMUM_REQUIREMENT</div>
+                </div>
+                <div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
+                    <span style="font-size: 1.5rem; font-weight: bold; opacity: 0.8;">USDC</span>
+                </div>
+
+                <div style="margin: 30px 0; text-align: center;">
+                    <label class="label"
+                        style="display: block; margin-bottom: 15px; opacity: 0.7;">SELECT_DATA_CATEGORY:</label>
+                    <select id="category" name="category" required
+                        style="background: rgba(0,255,0,0.05); border: 2px solid var(--terminal-green); color: var(--terminal-green); padding: 10px 20px; font-family: 'JetBrains Mono', monospace; outline: none; appearance: none; -webkit-appearance: none; cursor: pointer; min-width: 250px; text-align: center; font-size: 1rem; border-radius: 0; text-transform: uppercase;">
+                        <option value="jd" style="background: var(--terminal-black);">JOB</option>
+                        <option value="startup" style="background: var(--terminal-black);">STARTUP</option>
+                    </select>
+                    <div style="margin-top: 8px; font-size: 0.6rem; opacity: 0.4; letter-spacing: 2px;">[
+                        CLICK_TO_TOGGLE_OPTIONS ]</div>
                 </div>
 
                 <div style="text-align: center; margin-top: 30px;">
@@ -379,10 +396,11 @@
             progress.style.width = '90%';
             status.textContent = 'SYNCING_WITH_DATABASE...';
 
+            const category = document.getElementById('category').value;
             const createPostResponse = await fetch('/api/create_post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tx_hash: depositHash })
+                body: JSON.stringify({ tx_hash: depositHash, category: category })
             });
 
             const createPostResult = await createPostResponse.json();
